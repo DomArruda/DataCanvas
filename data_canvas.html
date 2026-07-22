@@ -351,7 +351,7 @@
                         Excel data
                         <input type="file" id="excelFileInput" class="hidden-file-input" accept=".xlsx,.xls" disabled />
                     </label>
-                    <!-->
+                    -->
                 </div>
             </div>
 
@@ -486,7 +486,8 @@
 
         //#region file: js/00-state.js
         const PRISTINE_HTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
-        const DARK_THEME = 'ayu-dark'
+        const DARK_THEME = 'ayu-dark';
+        const LIGHT_THEME = 'default';
 
         let pyodide;
         let cellCount = 0;
@@ -775,10 +776,17 @@
                 currentTheme = DARK_THEME;
             } else {
                 document.documentElement.removeAttribute('data-theme');
-                currentTheme = 'default';
+                currentTheme = LIGHT_THEME;
             }
             Object.values(editors).forEach(cm => cm.setOption('theme', currentTheme));
             document.getElementById('themeToggleBtn').textContent = goingDark ? 'Light mode' : 'Dark mode';
+
+            // Sync Matplotlib theme with the UI theme
+            if (typeof pyodide !== 'undefined' && pyodide) {
+                try {
+                    pyodide.runPython(`set_plot_theme(${goingDark ? 'True' : 'False'})`);
+                } catch(e) {} // Failsafe in case Pyodide isn't fully booted yet
+            }
         }
 
         //#endregion
@@ -993,7 +1001,6 @@
             // Python State Exporter & result renderer (tables / plots / plotly)
             await pyodide.runPythonAsync(`
                 # pyregion file: bootstrap.py
-
                 import json
                 import sys
                 import pandas as pd
@@ -1007,9 +1014,12 @@
                 matplotlib.use("Agg")
                 import matplotlib.pyplot as plt
 
-                # Keep a handle on the real stdout so we can restore it after each
-                # cell run. While a cell runs, sys.stdout is swapped for a StringIO
-                # buffer so print() output can be read back instead of vanishing.
+                # 1. Alias fig.plot() -> fig.gca().plot() to prevent user syntax crashes
+                def _fig_plot_alias(self, *args, **kwargs):
+                    return self.gca().plot(*args, **kwargs)
+
+                matplotlib.figure.Figure.plot = _fig_plot_alias
+
                 _original_stdout = sys.stdout
 
                 _IGNORE_GLOBALS = {
@@ -1017,16 +1027,18 @@
                     '__annotations__', '__builtins__', 'json', 'sys', 'pl', 'io', 'duckdb', 'os',
                     'base64', 'matplotlib', 'plt', 'pd', 'pandas', 'np', 'numpy', 'sns', 'seaborn',
                     'export_state_records', 'render_plot', 'render_result', 'get_completable_names',
-                    '_IGNORE_GLOBALS', '_original_stdout', 'start_stdout_capture', 'end_stdout_capture'
+                    '_IGNORE_GLOBALS', '_original_stdout', 'start_stdout_capture', 'end_stdout_capture',
+                    'set_plot_theme'
                 }
 
                 def start_stdout_capture():
-                    """Point sys.stdout at a fresh in-memory buffer before running a cell."""
                     sys.stdout = io.StringIO()
 
                 def end_stdout_capture():
-                    """Read back everything print() wrote during the cell, then restore stdout."""
-                    text = sys.stdout.getvalue()
+                    text = ""
+                    # Safely check if stdout is our custom buffer before reading
+                    if hasattr(sys.stdout, 'getvalue'):
+                        text = sys.stdout.getvalue()
                     sys.stdout = _original_stdout
                     return text
 
@@ -1068,42 +1080,78 @@
                 def get_completable_names():
                     return json.dumps([k for k in globals().keys() if not k.startswith('_') and k not in _IGNORE_GLOBALS])
 
-                def render_plot(obj):
-                    """Extracts the underlying figure whether it's an Axes (Pandas) or Figure (Matplotlib)."""
-                    if 'matplotlib.axes' in str(type(obj)):
+                def set_plot_theme(is_dark):
+                    import matplotlib.pyplot as plt
+                    import matplotlib as mpl
+                    
+                    # Always force the light mode aesthetic with a solid white figure background
+                    plt.style.use('default')
+                    mpl.rcParams.update({
+                        'figure.facecolor': '#ffffff',  
+                        'axes.facecolor': '#ffffff',    
+                        'axes.edgecolor': '#cbd5e1',    
+                        'grid.color': '#e2e8f0',        
+                        'text.color': '#0f172a',        
+                        'axes.labelcolor': '#64748b',   
+                        'xtick.color': '#94a3b8',
+                        'ytick.color': '#94a3b8'
+                    })
+
+                def render_plot(obj=None):
+                    """Extracts a base64 PNG from Figures, Axes, Seaborn Grids, or active PyPlot figures."""
+                    fig = None
+
+                    # Handle explicit return objects
+                    if hasattr(obj, 'get_figure'):         # Matplotlib Axes / Pandas plot
                         fig = obj.get_figure()
-                    elif 'matplotlib.figure.Figure' in str(type(obj)):
+                    elif isinstance(obj, matplotlib.figure.Figure): # Matplotlib Figure
                         fig = obj
-                    else:
+                    elif hasattr(obj, 'figure'):           # Seaborn PairGrid / FacetGrid / JointGrid
+                        fig = obj.figure
+                    elif hasattr(obj, 'fig'):              # Alternative Seaborn figure wrapper
+                        fig = obj.fig
+
+                    # Auto-fallback: check if an active PyPlot figure exists in memory
+                    if fig is None and plt.get_fignums():
+                        fig = plt.gcf()
+
+                    if fig is None or not fig.axes:
                         return None
 
                     buf = io.BytesIO()
+                    # Save with a solid background (transparent=True removed)
                     fig.savefig(buf, format='png', bbox_inches='tight')
                     buf.seek(0)
-                    plt.close() # necessary or visual bugs...
+                    plt.close('all') # Clear figures to prevent leakage into subsequent cells
                     return "data:image/png;base64," + base64.b64encode(buf.read()).decode('utf-8')
 
                 def render_result(obj):
-                    """Single dispatch for a cell's final expression: decides whether
-                    it becomes an interactive plotly figure, a matplotlib image, an
-                    HTML table (pandas / duckdb via .df()), or plain text."""
+                    """Dispatches cell evaluation result: Plotly -> Matplotlib/Seaborn -> DataFrames -> Text."""
                     try:
                         tstr = str(type(obj))
+
+                        # Plotly Interactive Figures
                         if 'plotly' in tstr and hasattr(obj, 'to_json'):
                             return json.dumps({"kind": "plotly", "spec": obj.to_json()})
-                        if 'matplotlib.axes' in tstr or 'matplotlib.figure.Figure' in tstr:
-                            src = render_plot(obj)
-                            if src:
-                                return json.dumps({"kind": "image", "src": src})
-                        # DuckDB relations materialize to a pandas DataFrame first
+
+                        # Matplotlib / Seaborn / Pandas Plotting
+                        src = render_plot(obj)
+                        if src:
+                            return json.dumps({"kind": "image", "src": src})
+
+                        # DuckDB Relations
                         if 'duckdb' in tstr and hasattr(obj, 'df'):
                             obj = obj.df()
+
+                        # Pandas DataFrames / HTML Reprs
                         if hasattr(obj, '_repr_html_'):
                             html = obj._repr_html_()
                             if isinstance(html, str) and html.strip():
                                 return json.dumps({"kind": "html", "html": html})
+
                     except Exception:
                         pass
+
                     try:
                         text = str(obj)
                     except Exception:
@@ -1112,6 +1160,11 @@
 
                 # endpyregion
             `);
+            
+
+            // Initialize plot theme based on current HTML data-theme
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            pyodide.runPython(`set_plot_theme(${isDark ? 'True' : 'False'})`);
 
             document.getElementById('status').style.display = 'none';
             //document.getElementById('csvFileInput').disabled = false;
@@ -2143,16 +2196,20 @@ df.plot(title="Pandas Built-in Plotting", figsize=(7, 4))`;
                 output.innerText = "Running\u2026";
 
                 // Run Python, capturing anything print() writes along the way
+                // Run Python, capturing anything print() writes along the way
                 pyodide.runPython("start_stdout_capture()");
                 let result;
                 try {
                     result = await pyodide.runPythonAsync(inputCode);
                 } finally {
-                    // Always read the buffer back and restore stdout, even on error,
-                    // so partial print() output before a crash isn't lost.
-                    printedText = pyodide.runPython("end_stdout_capture()");
+                    // Always restore stdout. Use try/catch so a stream crash never halts the UI.
+                    try {
+                        printedText = pyodide.runPython("end_stdout_capture()");  // ADDED FOR PLOTLY SUPPORT...
+                    } catch (bufferErr) {
+                        console.warn("Could not read stdout buffer:", bufferErr);
+                        printedText = "";
+                    }
                 }
-
                 // A PyProxy result goes through the Python-side dispatcher, which
                 // picks table / image / plotly / text. JS primitives fall through
                 // to the plain-text path.
@@ -2177,12 +2234,26 @@ df.plot(title="Pandas Built-in Plotting", figsize=(7, 4))`;
                 };
 
                 if (rich && rich.kind === 'plotly') {
+                    // Failsafe in case the user runs the cell before the Plotly CDN finishes loading
+                    if (typeof window.Plotly === 'undefined') {
+                        throw new Error("Plotly is still downloading. Please wait a few seconds and run the cell again.");
+                    }
+                    
                     const spec = JSON.parse(rich.spec);
                     Plotly.purge(plotlyTarget);
                     plotlyContainer.style.display = 'block';
-                    await Plotly.newPlot(plotlyTarget, spec.data, spec.layout || {}, { responsive: true, displaylogo: false });
+                    
+                    // We remove 'await' here so the button resets immediately.
+                    // If Plotly hits an internal snag, it prints to the console instead of permanently freezing your Run button!
+                    Plotly.newPlot(plotlyTarget, spec.data || [], spec.layout || {}, { responsive: true, displaylogo: false })
+                        .catch(e => {
+                            console.error("Plotly rendering error:", e);
+                            plotlyTarget.innerHTML = `<div style="color:#ef4444; padding:16px;">Plotly failed to render: ${e.message}</div>`;
+                        });
+                        
                     showStdoutOnly();
                     cellOutput = { kind: 'plotly', spec: { data: spec.data, layout: spec.layout || {} }, stdout: printedText || "" };
+
                 } else if (rich && rich.kind === 'image') {
                     plotImage.src = rich.src;
                     plotContainer.style.display = 'block';
