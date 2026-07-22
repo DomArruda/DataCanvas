@@ -22,7 +22,7 @@
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/markdown/markdown.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/ayu-dark.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.css">
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.js"></script>
     <script defer src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
@@ -48,9 +48,17 @@
     <style>
     /* #region file: styles.css */
 
+    /* #region file: styles.css */
+
         * { box-sizing: border-box; }
 
         :root {
+            /* Typography Variables (Claude-Inspired) */
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            --font-serif: 'Source Serif 4', Charter, 'Bitstream Charter', Georgia, serif;
+
+            /* Light Mode Colors */
             --bg: #f8fafc;
             --surface: #ffffff;
             --border: #e2e8f0;
@@ -80,10 +88,6 @@
             --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
             --shadow-md: 0 1px 3px rgba(0,0,0,0.05);
             --shadow-lg: 0 4px 6px -1px rgba(0,0,0,0.05);
-            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            --font-serif: 'Source Serif 4', Charter, 'Bitstream Charter', Georgia, serif;
-            
         }
 
         html[data-theme="dark"] {
@@ -121,14 +125,13 @@
 
         body {
             font-family: var(--font-sans);
-            line-height: 1.5; /* Adds a bit of breathing room to the UI */
+            line-height: 1.5;
             background-color: var(--bg);
             margin: 0; padding: 0; color: var(--text);
             transition: background-color .2s ease, color .2s ease;
-            -webkit-font-smoothing: antialiased; /* Makes Inter look crisp on Mac */
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* ---------- Navbar ---------- */
         /* ---------- Navbar ---------- */
         .navbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; background: var(--surface); padding: 12px 28px; border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm); margin-bottom: 28px; position: sticky; top: 0; z-index: 100; transition: background-color .2s ease, border-color .2s ease; flex-wrap: wrap; }
         .nav-brand { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
@@ -305,9 +308,10 @@
 
         /* Autocomplete popup theming */
         .CodeMirror-hints { font-family: var(--font-mono); font-size: 13px; border: 1px solid var(--border); box-shadow: var(--shadow-lg); }
+
         
         
-        /* #endregion */
+     /* #endregion */
 
 
     </style>
@@ -482,12 +486,13 @@
 
         //#region file: js/00-state.js
         const PRISTINE_HTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+        const DARK_THEME = 'ayu-dark'
 
         let pyodide;
         let cellCount = 0;
         const editors = {};
         const lastOutputs = {};   // cellId -> archived output object (see runCell)
-        let currentTheme = "dracula"; // CodeMirror theme, mirrors light/dark mode (starts in dark mode)
+        let currentTheme = DARK_THEME; // CodeMirror theme, mirrors light/dark mode (starts in dark mode)
         let tocTimer = null;
         let autosaveTimer = null;
 
@@ -767,7 +772,7 @@
             const goingDark = document.documentElement.getAttribute('data-theme') !== 'dark';
             if (goingDark) {
                 document.documentElement.setAttribute('data-theme', 'dark');
-                currentTheme = 'dracula';
+                currentTheme = DARK_THEME;
             } else {
                 document.documentElement.removeAttribute('data-theme');
                 currentTheme = 'default';
