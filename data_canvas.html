@@ -1,0 +1,2304 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>Data Canvas</title>
+
+    <script id="notebook-data" type="application/json">{"cells":[]}</script>
+
+    <!-- Out main scripts, defer used for asynch..........-->
+    <!-- #region file: cdn.html -->
+
+    <script defer src="https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/markdown/markdown.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.css">
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.js"></script>
+    <script defer src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+    <script defer src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+    <!-- #endregion -->
+
+    <!--
+      Supply-chain hardening (recommended before publishing): add
+        integrity="sha384-..." crossorigin="anonymous"
+      to each <script> tag above. Generate each hash yourself against the
+      exact URL, e.g.:
+        curl -s <URL> | openssl dgst -sha384 -binary | openssl base64 -A
+      (or use https://www.srihash.org). Don't copy hashes from elsewhere —
+      they must be byte-exact, and a wrong hash makes the browser refuse
+      the script entirely.
+    -->
+
+
+    <!--Some CSS...-->
+    <style>
+    /* #region file: styles.css */
+
+        * { box-sizing: border-box; }
+
+        :root {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --text-faint: #94a3b8;
+            --accent: #4f46e5;
+            --accent-hover: #4338ca;
+            --slate-btn-bg: #f1f5f9;
+            --slate-btn-text: #334155;
+            --slate-btn-border: #cbd5e1;
+            --slate-btn-hover: #e2e8f0;
+            --danger-bg: #fee2e2;
+            --danger-text: #ef4444;
+            --danger-hover-bg: #fca5a5;
+            --danger-hover-text: #b91c1c;
+            --run-bg: #10b981;
+            --run-hover: #059669;
+            --console-bg: #0f172a;
+            --console-text: #f1f5f9;
+            --console-error: #f87171;
+            --status-bg: #eff6ff;
+            --status-border: #bfdbfe;
+            --status-text: #1d4ed8;
+            --type-color: #a855f7;
+            --code-inline-bg: #f1f5f9;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-lg: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+        html[data-theme="dark"] {
+            color-scheme: dark;
+            --bg: #0a0f1c;
+            --surface: #111a2e;
+            --border: #223049;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --text-faint: #64748b;
+            --accent: #818cf8;
+            --accent-hover: #a5b4fc;
+            --slate-btn-bg: #1b2740;
+            --slate-btn-text: #cbd5e1;
+            --slate-btn-border: #2d3e5e;
+            --slate-btn-hover: #263654;
+            --danger-bg: #3f1d1d;
+            --danger-text: #f87171;
+            --danger-hover-bg: #5b2323;
+            --danger-hover-text: #fca5a5;
+            --run-bg: #10b981;
+            --run-hover: #34d399;
+            --console-bg: #05070d;
+            --console-text: #f1f5f9;
+            --console-error: #f87171;
+            --status-bg: #0f1b32;
+            --status-border: #1e3a5f;
+            --status-text: #93c5fd;
+            --type-color: #c084fc;
+            --code-inline-bg: #1b2740;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.35);
+            --shadow-md: 0 1px 3px rgba(0,0,0,0.35);
+            --shadow-lg: 0 4px 6px -1px rgba(0,0,0,0.35);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0; padding: 0; color: var(--text);
+            transition: background-color .2s ease, color .2s ease;
+        }
+
+        /* ---------- Navbar ---------- */
+        .navbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; background: var(--surface); padding: 12px 28px; border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm); margin-bottom: 28px; position: sticky; top: 0; z-index: 100; transition: background-color .2s ease, border-color .2s ease; flex-wrap: wrap; }
+        .nav-brand { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
+        .nav-brand .brand-mark { display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--accent); transform: translateY(-1px) rotate(45deg); }
+        .nav-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .nav-divider { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
+
+        .btn { display: inline-flex; align-items: center; gap: 7px; border: none; padding: 7px 13px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; font-family: inherit; transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease; box-shadow: var(--shadow-sm); }
+        .btn svg { flex: 0 0 auto; }
+        .btn-indigo { background-color: var(--accent); color: white; }
+        .btn-indigo:hover { background-color: var(--accent-hover); }
+        .btn-slate { background-color: var(--slate-btn-bg); color: var(--slate-btn-text); border: 1px solid var(--slate-btn-border); box-shadow: none; }
+        .btn-slate:hover { background-color: var(--slate-btn-hover); }
+        .btn-red { background-color: transparent; color: var(--danger-text); border: 1px solid transparent; box-shadow: none; }
+        .btn-red:hover { background-color: var(--danger-bg); }
+        .btn-green { background-color: var(--run-bg); color: white; }
+        .btn-green:hover { background-color: var(--run-hover); }
+        .btn:disabled { opacity: .55; cursor: wait; }
+        .hidden-file-input { display: none; }
+        
+
+        /* ---------- Dropdown menus (Import / Export) ---------- */
+    
+        .menu { position: relative; }
+        .menu-list { display: none; position: absolute; top: calc(100% + 6px); left: 0; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-lg); padding: 5px; z-index: 300; }
+        .menu-list.open { display: block; }
+        .menu-item { display: flex; width: 100%; align-items: center; padding: 8px 12px; border: none; background: transparent; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; font-family: inherit; color: var(--slate-btn-text); text-align: left; }
+        .menu-item:hover { background: var(--slate-btn-bg); color: var(--text); }
+        .menu-item.disabled { opacity: .5; pointer-events: none; }
+
+        .cache-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer; user-select: none; white-space: nowrap; }
+        .cache-toggle input { accent-color: var(--accent); cursor: pointer; }
+        .cache-toggle .exp { color: var(--text-faint); font-weight: 500; }
+        #cacheBadge { font-size: 11px; color: var(--text-faint); font-family: 'JetBrains Mono', 'Courier New', monospace; white-space: nowrap; }
+        #clearCacheBtn { padding: 4px 9px; font-size: 11.5px; }
+
+        /* ---------- Layout: contents | notebook | inspector ---------- */
+        .container { display: flex; gap: 28px; max-width: 1520px; margin: 0 auto; padding: 0 28px 48px 28px; align-items: flex-start; }
+
+        .toc { flex: 0 0 215px; position: sticky; top: 86px; max-height: calc(100vh - 110px); overflow-y: auto; padding-right: 4px; }
+        .toc-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-faint); margin: 6px 0 10px 2px; }
+        #toc-list { list-style: none; margin: 0; padding: 0; }
+        .toc-item { font-size: 13px; line-height: 1.35; color: var(--text-muted); padding: 5px 10px; border-left: 2px solid var(--border); cursor: pointer; transition: color .15s ease, border-color .15s ease; }
+        .toc-item:hover { color: var(--accent); border-left-color: var(--accent); }
+        .toc-h1 { font-weight: 600; color: var(--text); }
+        .toc-h2 { padding-left: 22px; }
+        .toc-h3 { padding-left: 34px; font-size: 12px; }
+        .toc-h4, .toc-h5, .toc-h6 { padding-left: 46px; font-size: 12px; }
+        #toc-empty { font-size: 12.5px; color: var(--text-faint); line-height: 1.5; padding: 2px 2px; }
+
+        .notebook { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 22px; }
+        .sidebar { flex: 0 0 400px; background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-lg); position: sticky; top: 86px; max-height: calc(100vh - 110px); overflow-y: auto; transition: background-color .2s ease, border-color .2s ease; }
+
+        @media (max-width: 1100px) {
+            .toc { display: none; }
+            .sidebar { display: none; }
+        }
+
+        /* ---------- Restore bar ---------- */
+        .restore-bar { display: none; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: var(--status-bg); border: 1px solid var(--status-border); color: var(--status-text); border-radius: 8px; font-size: 13.5px; font-weight: 600; flex-wrap: wrap; }
+        .restore-actions { display: flex; gap: 8px; }
+        .restore-actions .btn { padding: 5px 11px; font-size: 12.5px; }
+
+        /* ---------- Expanders (How to use / Disclaimer) ---------- */
+        .howto { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-md); transition: background-color .2s ease, border-color .2s ease; }
+        .howto summary { cursor: pointer; padding: 13px 18px; font-size: 14px; font-weight: 600; color: var(--text-muted); list-style: none; display: flex; align-items: center; gap: 10px; user-select: none; }
+        .howto summary::-webkit-details-marker { display: none; }
+        .howto summary::before { content: "+"; font-weight: 700; color: var(--accent); width: 14px; text-align: center; }
+        .howto[open] summary::before { content: "\2212"; }
+        .howto summary:hover { color: var(--text); }
+        .howto-body { padding: 0 18px 16px 42px; color: var(--text-muted); font-size: 13.5px; line-height: 1.65; }
+        .howto-body p { margin: 0 0 9px 0; }
+        .howto-body code { background: var(--code-inline-bg); padding: 1px 6px; border-radius: 4px; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 12px; color: var(--text); }
+        .howto-body strong { color: var(--text); }
+
+        /* ---------- Cells ---------- */
+        .cell { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: var(--shadow-md); transition: border-color 0.2s, background-color .2s ease, box-shadow .2s ease; scroll-margin-top: 86px; }
+        .cell:focus-within { border-color: var(--accent); }
+        .cell.md-rendered { background: transparent; border-color: transparent; box-shadow: none; padding: 4px 16px; }
+        .cell.md-rendered .cell-actions { display: none; }
+        .CodeMirror { border-radius: 8px; font-family: 'JetBrains Mono', 'Courier New', Courier, monospace; font-size: 14px; height: auto; min-height: 80px; padding: 4px 0; }
+
+        /* Hover-revealed insert handles (the cell list is a linked list;
+           these are its insert-before / insert-after operations) */
+        .insert-btn { position: absolute; left: 50%; transform: translateX(-50%); opacity: 0; pointer-events: none; transition: opacity .15s ease; z-index: 5; background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); border-radius: 999px; font-size: 12px; font-weight: 700; line-height: 1; padding: 3px 12px; cursor: pointer; box-shadow: var(--shadow-sm); }
+        .insert-btn.top { top: -12px; }
+        .insert-btn.bottom { bottom: -12px; }
+        .cell:hover .insert-btn { opacity: 1; pointer-events: auto; }
+        .insert-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+        .cell-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+        .action-group { display: flex; gap: 8px; }
+        .btn-run { background-color: var(--run-bg); color: white; border-radius: 6px; padding: 6px 14px; font-size: 13px; }
+        .btn-run:hover { background-color: var(--run-hover); }
+        .btn-del { background-color: transparent; color: var(--text-faint); padding: 6px 12px; font-size: 13px; box-shadow: none; }
+        .btn-del:hover { color: var(--danger-text); background-color: var(--danger-bg); }
+
+        .output { background: var(--console-bg); color: var(--console-text); padding: 16px; border-radius: 8px; margin-top: 12px; white-space: pre-wrap; font-family: 'JetBrains Mono', 'Courier New', Courier, monospace; display: none; font-size: 13px; line-height: 1.5; overflow-x: auto; }
+        .output.error { color: var(--console-error); }
+        .plot-container { background: var(--surface); padding: 10px; border-radius: 8px; margin-top: 12px; display: none; text-align: center; border: 1px solid var(--border); }
+        .plot-container img { max-width: 100%; height: auto; border-radius: 4px; }
+        .plotly-container { background: #ffffff; padding: 6px; border-radius: 8px; margin-top: 12px; display: none; border: 1px solid var(--border); }
+        .plotly-container .plotly-target { width: 100%; min-height: 420px; }
+
+        /* ---------- Rich tables (pandas /duckdb) ---------- */
+        .table-output { display: none; margin-top: 12px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; }
+        .table-output table { border-collapse: collapse; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 12.5px; color: var(--text); }
+        .table-output th, .table-output td { border: 1px solid var(--border); padding: 5px 11px; }
+        .table-output thead th { background: var(--slate-btn-bg); color: var(--text-muted); text-align: left; font-weight: 700; }
+        .table-output tbody th { color: var(--accent); font-weight: 600; text-align: left; }
+        .table-output td { text-align: right; }
+
+        /* ---------- Rendered markdown: the "book page" ---------- */
+        .markdown-output { display: none; padding: 2px 6px; font-family: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif; font-size: 16.5px; line-height: 1.7; color: var(--text); cursor: text; max-width: 74ch; }
+        .markdown-output > :first-child { margin-top: 2px; }
+        .markdown-output h1, .markdown-output h2, .markdown-output h3, .markdown-output h4 { font-family: inherit; color: var(--text); margin: 1em 0 0.45em 0; line-height: 1.25; letter-spacing: -0.01em; }
+        .markdown-output h1 { font-size: 1.85em; border-bottom: 1px solid var(--border); padding-bottom: .3em; }
+        .markdown-output h2 { font-size: 1.45em; }
+        .markdown-output h3 { font-size: 1.18em; }
+        .markdown-output p { margin: 0.55em 0; }
+        .markdown-output a { color: var(--accent); }
+        .markdown-output code { background: var(--code-inline-bg); padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 0.82em; }
+        .markdown-output pre { background: var(--console-bg); color: var(--console-text); padding: 12px 14px; border-radius: 8px; overflow-x: auto; }
+        .markdown-output pre code { background: none; padding: 0; color: inherit; }
+        .markdown-output blockquote { border-left: 3px solid var(--accent); margin: 0.7em 0; padding: 2px 16px; color: var(--text-muted); font-style: italic; }
+        .markdown-output table { border-collapse: collapse; margin: 0.7em 0; font-size: 0.92em; }
+        .markdown-output th, .markdown-output td { border: 1px solid var(--border); padding: 6px 12px; }
+        .markdown-output th { background: var(--slate-btn-bg); }
+        .markdown-output ul, .markdown-output ol { padding-left: 1.6em; }
+        .markdown-output hr { border: none; border-top: 1px solid var(--border); margin: 1.2em 0; }
+        .markdown-output img { max-width: 100%; }
+
+        /* ---------- Inspector ---------- */
+        .sidebar-title { margin: 0 0 4px 0; font-size: 15px; font-weight: 700; color: var(--text); }
+        .sidebar-subtitle { margin: 0 0 16px 0; font-size: 12.5px; color: var(--text-muted); }
+
+        /* ---------- Collapsible sidebar sections ---------- */
+        .sidebar-section summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; user-select: none; margin-bottom: 4px; }
+        .sidebar-section summary::-webkit-details-marker { display: none; }
+        .sidebar-section summary::before { content: "\25B8"; color: var(--accent); font-size: 11px; transition: transform .15s ease; flex: 0 0 auto; }
+        .sidebar-section[open] summary::before { transform: rotate(90deg); }
+        .sidebar-section summary .sidebar-title { margin: 0; }
+        .sidebar-section summary:hover .sidebar-title { color: var(--accent); }
+
+        .state-table-wrapper { max-height: 42vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+        #state-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: 'JetBrains Mono', 'Courier New', monospace; display: none; }
+        #state-table thead th { position: sticky; top: 0; text-align: left; padding: 8px 10px; background: var(--slate-btn-bg); color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 10px; border-bottom: 1px solid var(--border); }
+        #state-table tbody td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; word-break: break-word; }
+        #state-table tbody tr:last-child td { border-bottom: none; }
+        #state-table tbody tr:hover { background: var(--slate-btn-bg); }
+        .var-name { color: var(--accent); font-weight: 700; white-space: nowrap; }
+        .var-type { color: var(--type-color); white-space: nowrap; }
+        .var-value { color: var(--text); opacity: .82; }
+        #state-empty { color: var(--text-muted); font-size: 13px; padding: 18px 4px; text-align: center; }
+
+        /* ---------- Files panel (virtual filesystem) ---------- */
+        .files-panel { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); }
+        .files-actions { margin-left: auto; display: flex; gap: 6px; }
+        .files-actions .btn { padding: 3px 9px; font-size: 11px; }
+        .file-list { border: 1px solid var(--border); border-radius: 8px; max-height: 28vh; overflow-y: auto; }
+        .file-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 10px; border-bottom: 1px solid var(--border); }
+        .file-row:last-child { border-bottom: none; }
+        .file-row:hover { background: var(--slate-btn-bg); }
+        .file-info { min-width: 0; }
+        .file-name { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 12px; color: var(--text); word-break: break-all; }
+        .file-meta { font-size: 11px; color: var(--text-faint); margin-top: 1px; }
+        .file-dl { padding: 4px 9px; font-size: 13px; flex: 0 0 auto; }
+        #files-empty { color: var(--text-muted); font-size: 12.5px; padding: 12px 4px; }
+
+        /* ---------- Status ---------- */
+        .status-bar { padding: 12px 16px; background: var(--status-bg); border: 1px solid var(--status-border); color: var(--status-text); border-radius: 8px; margin-bottom: 4px; font-weight: 600; font-size: 13.5px; display: flex; align-items: center; gap: 10px; transition: background-color .2s ease, border-color .2s ease, color .2s ease; }
+        .spinner { width: 14px; height: 14px; border: 2px solid var(--status-border); border-top-color: var(--status-text); border-radius: 50%; animation: spin .8s linear infinite; flex: 0 0 auto; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Autocomplete popup theming */
+        .CodeMirror-hints { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 13px; border: 1px solid var(--border); box-shadow: var(--shadow-lg); }
+        /* #endregion */
+
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <div class="nav-brand"><span class="brand-mark"></span>Data Canvas</div>
+        <div class="nav-controls">
+            <label class="cache-toggle" title="Store downloaded packages in this browser's IndexedDB so reloads are much faster. Takes full effect on the next load.">
+                <input type="checkbox" id="pkgCacheToggle" />
+                Cache packages <span class="exp">(experimental)</span>
+            </label>
+            <span id="cacheBadge"></span>
+            <button class="btn btn-slate" id="clearCacheBtn">Clear cache</button>
+            <span class="nav-divider"></span>
+            <button class="btn btn-slate" id="themeToggleBtn" onclick="toggleTheme()">Light mode</button>
+            <span class="nav-divider"></span>
+
+            <div class="menu"> <!--Our Main buttons at the top - used for import, export, etc.-->
+                <button class="btn btn-slate" id="importMenuBtn">Import &#9662;</button>
+                <div class="menu-list" id="importMenuList">
+                    <label class="menu-item">
+                        Notebook (.json / .html)
+                        <input type="file" id="loadNotebookInput" class="hidden-file-input" accept=".json,.html,.canvas.html,.capy-canvas.html" disabled />
+                    </label>
+                    <label class="menu-item">
+                        Python script (.py)
+                        <input type="file" id="importPythonInput" class="hidden-file-input" accept=".py" disabled />
+                    </label>
+                    <!---
+                    <label class="menu-item">
+                        CSV data
+                        <input type="file" id="csvFileInput" class="hidden-file-input" accept=".csv" disabled />
+                    </label>
+                    <label class="menu-item">
+                        Excel data
+                        <input type="file" id="excelFileInput" class="hidden-file-input" accept=".xlsx,.xls" disabled />
+                    </label>
+                    <!-->
+                </div>
+            </div>
+
+            <div class="menu"> <!--Export Types: -->
+                <button class="btn btn-indigo" id="exportMenuBtn">Export &#9662;</button>
+                <div class="menu-list" id="exportMenuList">
+                    <button class="menu-item" onclick="saveHtmlCopy()">Save Copy (.html)</button>
+                    <button class="menu-item" onclick="exportNotebookJson()">Notebook JSON</button>
+                    <button class="menu-item" onclick="exportPython()">Python script (.py)</button>
+                </div>
+            </div>
+
+            <span class="nav-divider"></span>
+            <button class="btn btn-green" id="runAllBtn" onclick="runAllCells()" disabled> <!--Triggers the runAllCells() function....-->
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.2v9.6L10.4 6z"/></svg>
+                Run All
+            </button>
+            <button class="btn btn-red" onclick="location.reload()">Restart</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <nav class="toc" aria-label="Contents">
+            <div class="toc-title">Contents</div>
+            <ul id="toc-list"></ul>
+            <p id="toc-empty">Headings from your <code style="font-size:11px;">%%markdown</code> cells will appear here, like a table of contents.</p>
+        </nav>
+
+        <div class="notebook" id="notebook-container">
+            <div class="status-bar" id="status">
+                <span class="spinner"></span><span id="status-text">Loading the Python runtime&hellip;</span>
+            </div>
+
+            <div class="restore-bar" id="restoreBar">
+                <span id="restoreText">Unsaved work from this browser was found.</span>
+                <span class="restore-actions">
+                    <button class="btn btn-indigo" id="restoreBtn">Restore</button>
+                    <button class="btn btn-slate" id="restoreDismissBtn">Dismiss</button>
+                </span>
+            </div>
+
+            <details class="howto">
+                <summary>How to use this canvas</summary>
+                <div class="howto-body">
+                    <p><strong>Code cells</strong> run real Python in your browser (pandas, numpy, matplotlib, seaborn, pandas, duckdb, and plotly are pre-installed). The last expression in a cell is displayed &mdash; DataFrames (pandas and duckdb queries) render as tables, matplotlib/pandas plots as images, and plotly figures stay interactive. Hover a cell to reveal <code>+</code> handles for inserting a new cell above or below it.</p>
+                    <p><strong>Shortcuts</strong> &mdash; <code>Shift+Enter</code> runs a cell and moves to the next (creating one at the end); <code>Ctrl+Enter</code> (or <code>Cmd+Enter</code>) runs in place; <code>Ctrl+Space</code> autocompletes.</p>
+                    <p><strong>Markdown cells</strong> &mdash; start a cell with <code>%%markdown</code> to write notes. Run renders it; double-click the rendered text to edit again. Headings (<code>#</code>, <code>##</code>, <code>###</code>) build the Contents panel on the left.</p>
+                    <p><strong>Data</strong> &mdash; everything runs inside a <code>data/</code> folder. Upload files into it from the <em>Files</em> panel (right sidebar) and read them by plain filename &mdash; <code>pd.read_csv("sales.csv")</code>.<strong>Please note that files are not cached between sessions. </strong>Import &rarr; CSV or Excel also creates DataFrames for you automatically (Excel: one DataFrame per sheet, named <code>filename_sheetname</code>). Need another package? Write <code>%pip install package-name</code> in a cell (space-separate multiple packages; version pins like <code>pandas==2.2.0</code> work). The older <code>install("package-name")</code> form still runs.</p>
+                    <p><strong>Exporting data</strong> &mdash; write a file the normal way &mdash; pandas <code>df.to_csv("results.csv")</code>, or duckdb <code>COPY ... TO 'results.json'</code> &mdash; and it appears in the <em>Files</em> panel with a download button. Supported types: <code>.csv</code>, <code>.xlsx</code>, <code>.json</code>, <code>.parquet</code>. (Note: pandas <code>.to_excel()</code> needs <code>install("openpyxl")</code> first; for parquet, use duckdb.) These files live in the browser's in-memory filesystem only: they aren't baked into Save Copy, and <em>Restart</em> clears them &mdash; download what you need first.</p>
+                    <p><strong>Saving</strong> &mdash; your work autosaves in this browser as you type. Export &rarr; <em>Save Copy</em> downloads this very HTML file with your cells <em>and their outputs</em> baked in; open the copy later and everything is restored, no re-running needed (cells you never ran come back as plain code). Export &rarr; <em>Notebook JSON</em> saves cells + outputs as a small file; <em>Python script</em> writes a <code>.py</code> with <code># %%</code> cell markers and outputs as comments. Import &rarr; <em>Notebook</em> opens either saved format, and Import &rarr; <em>Python script</em> parses a <code># %%</code>-marked <code>.py</code> (including this canvas's own exports) back into cells. Note: loaded data files aren't embedded &mdash; re-load your CSV/Excel after opening a saved copy.</p>
+                    <p><strong>Performance</strong> &mdash; tick <em>Cache packages (experimental)</em> to store the Python runtime and packages in your browser (IndexedDB). The first load still downloads everything; every load after that restores from cache and is dramatically faster. When active, a <code>package_cache_info</code> entry appears in the Memory Inspector. Use <em>Clear cache</em> if packages ever misbehave.</p>
+                </div>
+            </details>
+
+            <details class="howto">
+                <summary>Disclaimer</summary>
+                <div class="howto-body">
+                    <p><strong>Notebooks are programs.</strong> Opening a notebook file and running its cells executes that author's Python code in your browser. The browser sandbox keeps it away from your files and operating system, but it can still make network requests, use your bandwidth and memory, and tie up this tab. Only run notebooks from people you trust &mdash; the same rule as any Jupyter notebook or downloaded script.</p>
+                    <p><strong>Rendered content is sanitized, not guaranteed.</strong> Markdown cells and table outputs from opened files are cleaned with DOMPurify before display. Treat shared notebook files with the same caution you'd give any file from the internet.</p>
+                    <p><strong>Don't paste secrets into cells.</strong> Autosave keeps your work (including anything you paste, like API keys or passwords) in this browser's local storage, and Save Copy / Export bake cell contents into the files you share. Assume anything typed in a cell may end up in a shared file.</p>
+                    <p><strong>No interrupt.</strong> An infinite loop (<code>while True:</code>) will freeze this tab &mdash; use <em>Restart</em> to recover. Very large datasets can exhaust the tab's memory.</p>
+                    <p><strong>Dependencies come from public CDNs</strong> (Pyodide, CodeMirror, plotly, and friends), so the first load needs internet access. The experimental package cache stores downloads in this browser's IndexedDB; <em>Clear cache</em> removes them.</p>
+                    <p><strong>No warranty.</strong> This is an educational tool provided as-is. Verify results independently before relying on them.</p>
+                </div>
+            </details>
+
+            <div id="cells-wrapper" style="display: flex; flex-direction: column; gap: 22px;"></div>
+
+            <button id="addCellBtn" class="btn btn-slate" style="align-self: flex-start; display: none; margin-top: 4px;">
+                + Add cell
+            </button>
+        </div>
+
+        <div class="sidebar">
+            <details class="sidebar-section" open>
+                <summary>
+                    <span class="sidebar-title">Memory Inspector</span>
+                </summary>
+                <p class="sidebar-subtitle">Live view of Python global variables.</p>
+                <div class="state-table-wrapper">
+                    <table id="state-table">
+                        <thead>
+                            <tr><th>Name</th><th>Type</th><th>Value</th></tr>
+                        </thead>
+                        <tbody id="state-table-body"></tbody>
+                    </table>
+                    <p id="state-empty">No variables yet &mdash; run a cell to see them here.</p>
+                </div>
+            </details>
+
+            <details class="sidebar-section files-panel" open>
+                <summary>
+                    <span class="sidebar-title">Files</span>
+                    <label class="cache-toggle" id="embedFilesLabel" title="When on, data files are baked into Save Copy / Export so they travel with the notebook. Off keeps saved files smaller and data private." style="margin-right:auto;">
+                        <input type="checkbox" id="embedFilesToggle" />
+                        Store data in notebook
+                    </label>
+                    <span class="files-actions">
+                        <button class="btn btn-slate" id="uploadFilesBtn" disabled>Upload</button>
+                        <button class="btn btn-slate" id="refreshFilesBtn">Refresh</button>
+                        <button class="btn btn-slate" id="downloadZipBtn">Download all (zip file)</button>
+                    </span>
+                </summary>
+                <p class="sidebar-subtitle">The <code>data/</code> folder &mdash; cells read and write here by plain filename, e.g. <code>pd.read_csv("sales.csv")</code>.</p>
+                <input type="file" id="dataFileUpload" class="hidden-file-input" accept=".csv,.xlsx,.json,.parquet,.txt" multiple />
+                <div class="file-list" id="file-list" style="display:none;"></div>
+                <p id="files-empty">No files yet &mdash; upload one, or write one with <code style="font-size:11px;">df.to_csv("out.csv")</code>.</p>
+            </details>
+            <details class="sidebar-section files-panel" id="cacheSection">
+                <summary>
+                    <span class="sidebar-title">Cached packages</span>
+                    <span class="files-actions">
+                        <button class="btn btn-slate" id="refreshCacheListBtn">Refresh</button>
+                    </span>
+                </summary>
+                <p class="sidebar-subtitle">Files stored in this browser's IndexedDB. Use <em>Clear cache</em> in the toolbar to remove them.</p>
+                <div class="file-list" id="cache-list" style="display:none;"></div>
+                <p id="cache-empty">Nothing cached yet.</p>
+            </details>
+        </div>
+    </div>
+
+    <script>
+    // All external scripts load with `defer`: they download in parallel without
+    // blocking first paint, execute in order, and are guaranteed done before
+    // DOMContentLoaded fires — so the whole app boots from that event.
+    window.addEventListener('DOMContentLoaded', function () {
+
+        // Snapshot this file's own source *before* any dynamic DOM is created.
+        // Save Copy re-serializes this snapshot with fresh notebook state, which
+        // is the only reliable way to "save in place" from a file:// page.
+
+        //#region file: js/00-state.js
+        const PRISTINE_HTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+
+        let pyodide;
+        let cellCount = 0;
+        const editors = {};
+        const lastOutputs = {};   // cellId -> archived output object (see runCell)
+        let currentTheme = "dracula"; // CodeMirror theme, mirrors light/dark mode (starts in dark mode)
+        let tocTimer = null;
+        let autosaveTimer = null;
+
+        const MARKDOWN_MAGIC = /^\s*%%markdown\b[^\n]*\n?/;  // we look out for the %%markdown in a cell to make sure that we know how to render it as such...
+        const STYLE_TAG = /<style[\s\S]*?<\/style>/gi; // strip library CSS from _repr_html_ so the theme wins
+        const DATA_DIR = "/home/pyodide/data"; // shared data folder — created at boot, becomes the Python cwd
+
+        // Every piece of third-party or file-derived HTML (rendered markdown,
+        // table reprs, outputs restored from opened files) passes through here
+        // before touching innerHTML. Fails CLOSED: if DOMPurify didn't load,
+        // content is escaped to plain text rather than injected raw.
+        function sanitizeHtml(html) { // SANITIZE HTML; THE WHOLE POINT IS THAT WE RUN CODE BUT FOR SAFETY REASONS.
+            if (window.DOMPurify) {
+                return DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
+            }
+            const d = document.createElement('div');
+            d.textContent = html;
+            return d.innerHTML;
+        }
+
+        //#endregion
+        //#region file: js/15-menus.js
+        // ---------------- Dropdown menus ----------------
+        function closeAllMenus() {
+            document.querySelectorAll('.menu-list.open').forEach(m => m.classList.remove('open'));
+        }
+        function setupMenu(btnId, listId) {
+            const btn = document.getElementById(btnId);
+            const list = document.getElementById(listId);
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const wasOpen = list.classList.contains('open');
+                closeAllMenus();
+                if (!wasOpen) list.classList.add('open');
+            });
+            // Close after any item is chosen (file dialogs open regardless)
+            list.addEventListener('click', () => setTimeout(closeAllMenus, 0));
+        }
+        setupMenu('importMenuBtn', 'importMenuList');
+        setupMenu('exportMenuBtn', 'exportMenuList');
+        document.addEventListener('click', closeAllMenus);
+        //#endregion
+
+        //#region file: js/10-prefs.js
+        // ---------------- Persistent preferences (guarded: some locked-down
+        // or private-browsing modes block storage — fail soft, never break) ----
+        function readPref(key) {
+            try { return localStorage.getItem(key); } catch (e) { return null; }
+        }
+        function writePref(key, value) {
+            try { localStorage.setItem(key, value); } catch (e) { /* no-op */ }
+        }
+
+        //#endregion
+        //#region file: js/20-cache.js
+
+        //
+
+        // ---------------- Experimental package cache (IndexedDB) ----------------
+        // Pyodide and micropip fetch the runtime, stdlib, and every wheel through
+        // window.fetch. When caching is on, we wrap fetch: for the package CDNs
+        // below, serve from IndexedDB when possible and store misses on the way
+        // through. Keys are full URLs — versioned package URLs invalidate
+        // themselves naturally when a pin changes.
+        const PKG_CACHE_DOMAINS = ["cdn.jsdelivr.net", "files.pythonhosted.org", "pypi.org"];
+        const PKG_CACHE_DB = "data-canvas-pkg-cache";
+        const PKG_CACHE_STORE = "responses";
+
+        let cacheEnabled = readPref("dc-pkg-cache") === "1";
+        let embedFilesEnabled = readPref("dc-embed-files") !== "0"; // default ON
+        const cacheStats = { hits: 0, stored: 0 };
+
+        function cacheDbOpen() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(PKG_CACHE_DB, 1);
+                req.onupgradeneeded = () => req.result.createObjectStore(PKG_CACHE_STORE);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+        function cacheDbGet(db, key) {
+            return new Promise((resolve, reject) => {
+                const req = db.transaction(PKG_CACHE_STORE, "readonly").objectStore(PKG_CACHE_STORE).get(key);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+        function cacheDbPut(db, key, value) {
+            return new Promise((resolve, reject) => {
+                const req = db.transaction(PKG_CACHE_STORE, "readwrite").objectStore(PKG_CACHE_STORE).put(value, key);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+
+        }
+
+
+        function cacheDbList() {
+            return new Promise((resolve, reject) => {
+                cacheDbOpen().then(db => {
+                    const store = db.transaction(PKG_CACHE_STORE, "readonly").objectStore(PKG_CACHE_STORE);
+                    const req = store.openCursor();
+                    const rows = [];
+                    req.onsuccess = () => {
+                        const cur = req.result;
+                        if (!cur) { resolve(rows); return; }
+                        const v = cur.value || {};
+                        rows.push({
+                            url: String(cur.key),
+                            size: (v.buffer && v.buffer.byteLength) || 0,
+                            ts: v.ts || 0
+                        });
+                        cur.continue();
+                    };
+                    req.onerror = () => reject(req.error);
+                }).catch(reject);
+            });
+        }
+
+        function cacheDbDelete(key) {
+            return new Promise((resolve, reject) => {
+                cacheDbOpen().then(db => {
+                    const req = db.transaction(PKG_CACHE_STORE, "readwrite")
+                                  .objectStore(PKG_CACHE_STORE).delete(key);
+                    req.onsuccess = () => resolve();
+                    req.onerror = () => reject(req.error);
+                }).catch(reject);
+            });
+        }
+
+        function isCacheableRequest(url, method) {
+            if ((method || "GET").toUpperCase() !== "GET") return false;
+            let host = "";
+            try { host = new URL(url, location.href).hostname; } catch (e) { return false; }
+            return PKG_CACHE_DOMAINS.some(d => host === d || host.endsWith("." + d));
+        }
+
+        // Patch is always installed; the cacheEnabled flag gates behavior so the
+        // checkbox works live without a reload.
+        const nativeFetch = window.fetch.bind(window);
+        window.fetch = async function (input, init) {
+            const url = (typeof input === "string") ? input : ((input && input.url) || "");
+            const method = (init && init.method) || (input && input.method) || "GET";
+            if (!cacheEnabled || !isCacheableRequest(url, method)) {
+                return nativeFetch(input, init);
+            }
+            try {
+                const db = await cacheDbOpen();
+                const hit = await cacheDbGet(db, url);
+                if (hit && hit.buffer) {
+                    cacheStats.hits++;
+                    updateCacheBadge();
+                    // slice() hands out a fresh copy so the stored buffer is never consumed
+                    return new Response(hit.buffer.slice(0), {
+                        status: 200,
+                        headers: { "Content-Type": hit.contentType || "application/octet-stream" }
+                    });
+                }
+                const resp = await nativeFetch(input, init);
+                if (resp.ok) {
+                    resp.clone().arrayBuffer()
+                        .then(buf => cacheDbPut(db, url, {
+                            buffer: buf,
+                            contentType: resp.headers.get("Content-Type") || "",
+                            ts: Date.now()
+                        }))
+                        .then(() => { cacheStats.stored++; updateCacheBadge(); })
+                        .catch(() => { /* storage full or blocked — carry on uncached */ });
+                }
+                return resp;
+            } catch (e) {
+                return nativeFetch(input, init); // IndexedDB unavailable — plain fetch
+            }
+        };
+
+        function updateCacheBadge() {
+            const badge = document.getElementById("cacheBadge");
+            badge.textContent = cacheEnabled
+                ? `${cacheStats.hits} cached \u00b7 ${cacheStats.stored} stored`
+                : "";
+            // "(experimental)" marker surfaced in the Python globals / Memory Inspector
+            if (pyodide) {
+                try {
+                    if (cacheEnabled) {
+                        pyodide.globals.set("package_cache_info",
+                            `(experimental) IndexedDB package cache \u2014 served ${cacheStats.hits} from cache, stored ${cacheStats.stored} this session`);
+                    } else {
+                        pyodide.runPython("globals().pop('package_cache_info', None)");
+                    }
+                } catch (e) { /* pyodide mid-boot — badge alone is fine */ }
+            }
+        }
+
+        const cacheToggle = document.getElementById("pkgCacheToggle");
+        cacheToggle.checked = cacheEnabled;
+        cacheToggle.addEventListener("change", () => {
+            cacheEnabled = cacheToggle.checked;
+            writePref("dc-pkg-cache", cacheEnabled ? "1" : "0");
+            updateCacheBadge();
+            if (pyodide) updateStateInspector();
+        });
+
+
+        const embedToggle = document.getElementById("embedFilesToggle");
+        embedToggle.checked = embedFilesEnabled;
+        embedToggle.addEventListener("change", (e) => {
+            e.stopPropagation();
+            embedFilesEnabled = embedToggle.checked;
+            writePref("dc-embed-files", embedFilesEnabled ? "1" : "0");
+        });
+        // Clicks on the label/checkbox shouldn't collapse the Files <details>
+        document.getElementById("embedFilesLabel").addEventListener("click", (e) => e.stopPropagation());
+
+        document.getElementById("clearCacheBtn").addEventListener("click", () => {
+            try { indexedDB.deleteDatabase(PKG_CACHE_DB); } catch (e) { /* no-op */ }
+            cacheStats.hits = 0;
+            cacheStats.stored = 0;
+            updateCacheBadge();
+            refreshCacheList();
+            document.getElementById("cacheBadge").textContent = "cache cleared";
+        });
+
+        //#endregion
+        //#region file: js/25-autosave.js
+
+        // ---------------- Autosave (localStorage, keyed per file path so
+        // different chapter files never clobber each other) ----------------
+        const AUTOSAVE_KEY = "dc-autosave:" + (location.pathname || "canvas");
+
+        function scheduleAutosave() {
+            clearTimeout(autosaveTimer);
+            autosaveTimer = setTimeout(doAutosave, 1500);
+        }
+        function doAutosave() {
+            const payload = { ts: Date.now(), cells: collectCellsRich() };
+            try {
+                localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(payload));
+            } catch (e) {
+                // Quota exceeded (plots are heavy) — fall back to code only,
+                // which is the part that can't be regenerated.
+                try {
+                    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ ts: Date.now(), cells: collectCells() }));
+                } catch (e2) { /* storage blocked entirely — nothing to do */ }
+            }
+        }
+        function maybeOfferRestore() {
+            let saved = null;
+            try { saved = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || "null"); } catch (e) { return; }
+            if (!saved || !Array.isArray(saved.cells) || !saved.cells.length) return;
+
+            const savedCodes = JSON.stringify(saved.cells.map(c => (typeof c === "string") ? c : (c && c.code) || ""));
+            const currentCodes = JSON.stringify(collectCells());
+            if (savedCodes === currentCodes) return; // nothing newer than what's on screen
+
+            const bar = document.getElementById("restoreBar");
+            const when = new Date(saved.ts || Date.now()).toLocaleString();
+            document.getElementById("restoreText").textContent =
+                `Unsaved work from ${when} was found in this browser.`;
+            bar.style.display = "flex";
+            document.getElementById("restoreBtn").onclick = () => {
+                loadCellsFromList(saved.cells);
+                bar.style.display = "none";
+            };
+            document.getElementById("restoreDismissBtn").onclick = () => {
+                try { localStorage.removeItem(AUTOSAVE_KEY); } catch (e) { /* no-op */ }
+                bar.style.display = "none";
+            };
+        }
+
+        //#endregion
+        
+        //#region file: js/30-theme.js
+        // ---------------- Theme toggle ----------------
+
+
+        function toggleTheme() {
+            const goingDark = document.documentElement.getAttribute('data-theme') !== 'dark';
+            if (goingDark) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                currentTheme = 'dracula';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                currentTheme = 'default';
+            }
+            Object.values(editors).forEach(cm => cm.setOption('theme', currentTheme));
+            document.getElementById('themeToggleBtn').textContent = goingDark ? 'Light mode' : 'Dark mode';
+        }
+
+        //#endregion
+        //#region file: js/35-completions.js
+
+        // ---------------- Autocomplete - for now we only use those from common data science packages ----------------
+        // ---------------- WIP: add functions to look at the methods assigned to the module object and add them to the keywords list -------
+        const PY_KEYWORDS = ["%pip install", "False","None","True","and","as","assert","async","await","break","class",
+            "continue","def","del","elif","else","except","finally","for","from","global","if","import",
+            "in","is","lambda","nonlocal","not","or","pass","raise","return","try","while","with","yield"];
+
+        const PY_BUILTINS = ["abs","all","any","bool","bytes","dict","dir","enumerate","filter","float",
+            "format","getattr","hasattr","int","isinstance","len","list","map","max","min","open","print",
+            "range","repr","reversed","round","set","sorted","str","sum","tuple","type","zip"];
+
+        const MODULE_MEMBERS = {
+            pd: ["DataFrame","Series","read_csv","read_json","concat","merge","to_datetime","date_range",
+                 "isna","notna","pivot_table","cut","get_dummies","options"],
+            np: ["array","arange","zeros","ones","linspace","reshape","mean","median","std","sum","min",
+                 "max","dot","concatenate","random","nan","where","unique","sort"],
+            pl: ["DataFrame","Series","read_csv","concat","col","lit","when"],
+            duckdb: ["sql","connect","query","from_df","read_csv"],
+            sns: ["scatterplot","lineplot","barplot","histplot","boxplot","heatmap","pairplot","set_theme"],
+            plt: ["figure","plot","scatter","bar","hist","xlabel","ylabel","title","legend","show",
+                  "subplots","savefig"],
+            px: ["scatter","line","bar","histogram","box","violin","pie","imshow","density_heatmap",
+                 "scatter_3d","sunburst","treemap"],
+            go: ["Figure","Scatter","Bar","Histogram","Box","Heatmap","Pie","Surface","Layout"]
+        };
+
+        const DF_METHODS = ["head","tail","describe","info","shape","dtypes","columns","values","index",
+            "loc","iloc","groupby","merge","join","concat","sort_values","sort_index","drop","dropna",
+            "fillna","astype","apply","map","applymap","query","sample","corr","cov","sum","mean","median",
+            "std","min","max","count","nunique","value_counts","reset_index","set_index","rename",
+            "pivot_table","melt","to_csv","to_json","to_dict","to_numpy","copy","plot","iterrows",
+            "itertuples","isna","notna","duplicated","drop_duplicates"];
+
+        const ARRAY_METHODS = ["shape","dtype","reshape","flatten","transpose","sum","mean","std","min",
+            "max","argmin","argmax","sort","astype","tolist","copy","T"];
+
+
+        // for python autocomplete for standard library AND the chosen default packages
+        function pythonHint(cm) {
+            const cur = cm.getCursor();
+            const line = cm.getLine(cur.line);
+            const beforeCursor = line.slice(0, cur.ch);
+
+            const dotMatch = /([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z0-9_]*)$/.exec(beforeCursor);
+            let candidates = [];
+            let from, to, partialText;
+
+            if (dotMatch) {
+                const objPath = dotMatch[1];
+                partialText = dotMatch[2];
+                from = CodeMirror.Pos(cur.line, cur.ch - partialText.length);
+                to = CodeMirror.Pos(cur.line, cur.ch);
+
+                if (MODULE_MEMBERS[objPath]) {
+                    candidates = MODULE_MEMBERS[objPath];
+                } else if (pyodide) {
+                    try {
+                        const typeName = pyodide.runPython(
+                            `type(${objPath}).__name__ if ${JSON.stringify(objPath)} in globals() else ''`
+                        );
+                        if (/DataFrame|Series/.test(typeName)) candidates = DF_METHODS;
+                        else if (/ndarray/.test(typeName)) candidates = ARRAY_METHODS;
+                    } catch (e) { candidates = []; }
+                }
+            } else {
+                const wordMatch = /[A-Za-z_][A-Za-z0-9_]*$/.exec(beforeCursor);
+                partialText = wordMatch ? wordMatch[0] : "";
+                from = CodeMirror.Pos(cur.line, cur.ch - partialText.length);
+                to = CodeMirror.Pos(cur.line, cur.ch);
+
+                let globalNames = [];
+                if (pyodide) {
+                    try {
+                        globalNames = JSON.parse(pyodide.runPython("get_completable_names()"));
+                    } catch (e) { /* pyodide not ready yet */ }
+                }
+                candidates = [...new Set([...PY_KEYWORDS, ...PY_BUILTINS, ...Object.keys(MODULE_MEMBERS), ...globalNames])];
+            }
+
+            const filtered = candidates
+                .filter(c => c.toLowerCase().startsWith(partialText.toLowerCase()))
+                .sort();
+
+            return { list: filtered, from: from, to: to };
+        }
+        CodeMirror.registerHelper('hint', 'python', pythonHint);
+
+
+        //#endregion
+        //#region file: js/40-markdown.js
+
+        // ---------------- Markdown cell helpers ----------------
+        function isMarkdownCode(code) {    // MARKDOWN_MAGIC is of type RegExp. It's test method will return false if not markdown...
+            return MARKDOWN_MAGIC.test(code);
+        }
+
+        // Keep CodeMirror's syntax mode in sync with the cell's content:
+        // "%%markdown" at the top => markdown highlighting, otherwise Python.
+        function syncCellMode(cm) {
+            const wantsMarkdown = isMarkdownCode(cm.getValue()); // get value of the cm
+            const target = wantsMarkdown ? "markdown" : "python"; // only support python and markdown.
+            if (cm.getOption("mode") !== target) cm.setOption("mode", target);
+            return wantsMarkdown;
+        }
+
+        // Render a %%markdown cell into its book-page view. Returns true if the
+        // cell was markdown (and was rendered), false otherwise.
+        function renderMarkdownCell(cellId) {
+            const cell = document.getElementById(cellId);
+            const cm = editors[cellId]; // editors is a JSON object/hashmap
+            if (!cell || !cm) return false;
+            const code = cm.getValue();
+            const m = code.match(MARKDOWN_MAGIC);
+            if (!m) return false;
+
+            const mdContainer = cell.querySelector('.markdown-output');
+            mdContainer.innerHTML = sanitizeHtml(marked.parse(code.slice(m[0].length))); // making sure that the HTML is sanitized...
+            cell.querySelector('.output').style.display = 'none';
+            cell.querySelector('.plot-container').style.display = 'none';
+            cell.querySelector('.plotly-container').style.display = 'none';
+            cell.querySelector('.table-output').style.display = 'none';
+            mdContainer.style.display = 'block';
+            cm.getWrapperElement().style.display = 'none';
+            cell.classList.add('md-rendered');
+            return true;
+        }
+
+        function showEditorForCell(cellId) {
+            const cell = document.getElementById(cellId);
+            if (!cell || !editors[cellId]) return;
+            cell.querySelector('.markdown-output').style.display = 'none';
+            cell.classList.remove('md-rendered');
+            const cm = editors[cellId];
+            cm.getWrapperElement().style.display = '';
+            cm.refresh();
+            cm.focus();
+        }
+
+
+        //#endregion
+        //#region file: js/45-toc.js
+
+        // ---------------- Contents panel ----------------
+        function rebuildTOC() {
+            const tocList = document.getElementById('toc-list');
+            const tocEmpty = document.getElementById('toc-empty');
+            tocList.innerHTML = '';
+            let count = 0;
+
+            document.querySelectorAll('#cells-wrapper .cell').forEach(cellDiv => {
+                const cm = editors[cellDiv.id];
+                if (!cm) return;
+                const code = cm.getValue();
+                const m = code.match(MARKDOWN_MAGIC);
+                if (!m) return;
+
+                let inFence = false;
+                code.slice(m[0].length).split('\n').forEach(line => {
+                    if (/^\s*```/.test(line)) { inFence = !inFence; return; }
+                    if (inFence) return;
+                    const h = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line);
+                    if (!h) return;
+                    count++;
+                    const li = document.createElement('li');
+                    li.className = 'toc-item toc-h' + h[1].length;
+                    li.textContent = h[2].replace(/[*_`]/g, '');
+                    li.title = li.textContent;
+                    li.addEventListener('click', () => {
+                        cellDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    });
+                    tocList.appendChild(li);
+                });
+            });
+
+            tocEmpty.style.display = count ? 'none' : 'block';
+        }
+
+        function scheduleTocRebuild() {
+            clearTimeout(tocTimer);
+            tocTimer = setTimeout(rebuildTOC, 500);
+        }
+
+        //#endregion
+        //#region file: js/99-boot.js
+
+        // ---------------- Pyodide boot ----------------
+        async function initPyodide() {
+            const statusText = document.getElementById('status-text');
+            pyodide = await loadPyodide();
+            statusText.textContent = "Installing pandas, numpy, matplotlib, seaborn, duckdb, plotly. This may take a minute or two...";
+
+            await pyodide.loadPackage("micropip");
+            const micropip = pyodide.pyimport("micropip");
+
+            // Create the shared data directory (idempotent) and make it the
+            // working directory, so plain filenames in cells read/write there.
+            try {
+                pyodide.FS.mkdir(DATA_DIR);
+            } catch (e) { /* already exists */ }
+            pyodide.runPython(`import os; os.chdir(${JSON.stringify(DATA_DIR)})`);
+
+            // plotly is pinned to 5.x: plotly.py 6+ serializes arrays as base64
+            // "bdata" blobs that the plotly.js 2.x bundle in <head> can't read
+            // (figures render as an empty white canvas). 5.24.1 + plotly.js 2.35
+            // is a matched pair.
+            await micropip.install(["duckdb", "pandas", "numpy", "matplotlib", "seaborn", "openpyxl", "plotly==5.24.1"]);
+
+            // Python State Exporter & result renderer (tables / plots / plotly)
+            await pyodide.runPythonAsync(`
+                # pyregion file: bootstrap.py
+
+                import json
+                import sys
+                import pandas as pd
+                import numpy as np
+                import duckdb
+                import seaborn as sns
+                import io
+                import base64
+
+                import matplotlib
+                matplotlib.use("Agg")
+                import matplotlib.pyplot as plt
+
+                # Keep a handle on the real stdout so we can restore it after each
+                # cell run. While a cell runs, sys.stdout is swapped for a StringIO
+                # buffer so print() output can be read back instead of vanishing.
+                _original_stdout = sys.stdout
+
+                _IGNORE_GLOBALS = {
+                    '__name__', '__doc__', '__package__', '__loader__', '__spec__',
+                    '__annotations__', '__builtins__', 'json', 'sys', 'pl', 'io', 'duckdb', 'os',
+                    'base64', 'matplotlib', 'plt', 'pd', 'pandas', 'np', 'numpy', 'sns', 'seaborn',
+                    'export_state_records', 'render_plot', 'render_result', 'get_completable_names',
+                    '_IGNORE_GLOBALS', '_original_stdout', 'start_stdout_capture', 'end_stdout_capture'
+                }
+
+                def start_stdout_capture():
+                    """Point sys.stdout at a fresh in-memory buffer before running a cell."""
+                    sys.stdout = io.StringIO()
+
+                def end_stdout_capture():
+                    """Read back everything print() wrote during the cell, then restore stdout."""
+                    text = sys.stdout.getvalue()
+                    sys.stdout = _original_stdout
+                    return text
+
+                def export_state_records():
+                    records = []
+                    for k in sorted(globals().keys()):
+                        if k.startswith('_') or k in _IGNORE_GLOBALS:
+                            continue
+                        v = globals()[k] # getting the globals...
+                        t = type(v).__name__
+                        tstr = str(type(v))
+                        try:
+                            if isinstance(v, str):
+                                preview = v if len(v) <= 60 else v[:57] + "..."
+                            elif 'plotly' in tstr:
+                                preview = "<Plotly Figure>"
+                            elif 'matplotlib.figure.Figure' in tstr:
+                                preview = "<Figure>"
+                            elif 'matplotlib.axes' in tstr:
+                                preview = "<Axes>"
+                            elif 'io.' in tstr:
+                                preview = "<File Stream>"
+                            elif 'duckdb' in tstr:
+                                preview = "<DuckDB Connection/Relation>"
+                            elif hasattr(v, 'shape'):
+                                preview = f"shape={tuple(v.shape)}"
+                            elif isinstance(v, (list, tuple, set)):
+                                preview = f"{t}, len={len(v)}"
+                            elif isinstance(v, dict):
+                                preview = f"dict, {len(v)} keys"
+                            else:
+                                s = str(v)
+                                preview = s if len(s) <= 60 else s[:57] + "..."
+                        except Exception:
+                            preview = "<unable to preview>"
+                        records.append({"name": k, "type": t, "preview": preview})
+                    return json.dumps(records)
+
+                def get_completable_names():
+                    return json.dumps([k for k in globals().keys() if not k.startswith('_') and k not in _IGNORE_GLOBALS])
+
+                def render_plot(obj):
+                    """Extracts the underlying figure whether it's an Axes (Pandas) or Figure (Matplotlib)."""
+                    if 'matplotlib.axes' in str(type(obj)):
+                        fig = obj.get_figure()
+                    elif 'matplotlib.figure.Figure' in str(type(obj)):
+                        fig = obj
+                    else:
+                        return None
+
+                    buf = io.BytesIO()
+                    fig.savefig(buf, format='png', bbox_inches='tight')
+                    buf.seek(0)
+                    plt.close() # necessary or visual bugs...
+                    return "data:image/png;base64," + base64.b64encode(buf.read()).decode('utf-8')
+
+                def render_result(obj):
+                    """Single dispatch for a cell's final expression: decides whether
+                    it becomes an interactive plotly figure, a matplotlib image, an
+                    HTML table (pandas / duckdb via .df()), or plain text."""
+                    try:
+                        tstr = str(type(obj))
+                        if 'plotly' in tstr and hasattr(obj, 'to_json'):
+                            return json.dumps({"kind": "plotly", "spec": obj.to_json()})
+                        if 'matplotlib.axes' in tstr or 'matplotlib.figure.Figure' in tstr:
+                            src = render_plot(obj)
+                            if src:
+                                return json.dumps({"kind": "image", "src": src})
+                        # DuckDB relations materialize to a pandas DataFrame first
+                        if 'duckdb' in tstr and hasattr(obj, 'df'):
+                            obj = obj.df()
+                        if hasattr(obj, '_repr_html_'):
+                            html = obj._repr_html_()
+                            if isinstance(html, str) and html.strip():
+                                return json.dumps({"kind": "html", "html": html})
+                    except Exception:
+                        pass
+                    try:
+                        text = str(obj)
+                    except Exception:
+                        text = "<unprintable object>"
+                    return json.dumps({"kind": "text", "text": text})
+
+                # endpyregion
+            `);
+
+            document.getElementById('status').style.display = 'none';
+            //document.getElementById('csvFileInput').disabled = false;
+            //document.getElementById('excelFileInput').disabled = false;
+            document.getElementById('loadNotebookInput').disabled = false;
+            document.getElementById('importPythonInput').disabled = false;
+            document.getElementById('runAllBtn').disabled = false;
+            document.getElementById('uploadFilesBtn').disabled = false;
+            document.getElementById('addCellBtn').style.display = 'flex';
+
+            updateCacheBadge(); // publishes package_cache_info into globals if enabled
+
+            // If this file was produced by "Save Copy", restore its embedded cells
+            // (and their saved outputs — no re-running needed).
+            const embedded = getEmbeddedNotebook();
+            if (embedded) {
+                restoreDataFiles(embedded.files); // rehydrate saved data/ files first
+                loadCellsFromList(embedded.cells);
+            } else {
+                const starterCode = `import pandas as pd
+import numpy as np
+
+# Create a random timeseries
+df = pd.DataFrame(
+    np.random.randn(100, 2), 
+    columns=['Series A', 'Series B']
+).cumsum()
+
+# Pandas .plot() returns a Matplotlib Axes object. 
+# Just leave it at the end of the cell and the canvas will render it!
+df.plot(title="Pandas Built-in Plotting", figsize=(7, 4))`;
+                addCell(starterCode);
+            }
+
+            rebuildTOC();
+            updateStateInspector();
+            refreshFilePanel(); // render the Files panel's empty state
+            maybeOfferRestore(); // offer autosaved work from this browser, if any
+        }
+
+
+        //#endregion
+        //#region file: js/50-notebook-state.js
+
+        // ---------------- Embedded state (Save Copy) ----------------
+        function getEmbeddedNotebook() {
+            const el = document.getElementById('notebook-data');
+            if (!el) return null;
+            try {
+                const data = JSON.parse(el.textContent);
+                return (data && Array.isArray(data.cells) && data.cells.length > 0) ? data : null; // getting all cells if data exists and if each cell is an array > 0
+            } catch (e) { return null; }
+        }
+
+        // Code only — used for comparisons and as a quota-friendly fallback.
+        function collectCells() {
+            const cells = [];
+            document.querySelectorAll('#cells-wrapper .cell').forEach(cellDiv => {
+                if (editors[cellDiv.id]) cells.push(editors[cellDiv.id].getValue());
+            });
+            return cells;
+        }
+
+        // Code + archived output. Cells that were never run save with output: null
+        // — they round-trip as plain code, exactly as written.
+        function collectCellsRich() {
+            const items = [];
+            document.querySelectorAll('#cells-wrapper .cell').forEach(cellDiv => {
+                if (!editors[cellDiv.id]) return;
+                items.push({
+                    code: editors[cellDiv.id].getValue(),
+                    output: lastOutputs[cellDiv.id] || null
+                });
+            });
+            return items;
+        }
+
+
+        // Serialize the data/ folder into the saved notebook. Each embeddable
+        // file becomes { name: {b64, ext} }. Binary-safe base64 encoding, chunked
+        // so large files don't blow the call stack on String.fromCharCode.
+        const EMBEDDABLE_FILE_RE = /\.(csv|xlsx|xls|json|parquet|txt|tsv)$/i;
+
+        function bytesToBase64(bytes) {
+            let binary = "";
+            const chunk = 0x8000; // 32 KB per chunk keeps the apply() args in range
+            for (let i = 0; i < bytes.length; i += chunk) {
+                binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+            }
+            return btoa(binary);
+        }
+
+        function base64ToBytes(b64) {
+            const binary = atob(b64);
+            const out = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+            return out;
+        }
+
+        function collectDataFiles() {
+            const out = {};
+            if (!embedFilesEnabled) return out;   // <-- respect the embed toggle
+
+            if (!pyodide || !pyodide.FS) return out;
+            const dir = pyCwd();
+            let names = [];
+            try { names = pyodide.FS.readdir(dir); } catch (e) { return out; }
+            names.forEach(name => {
+                if (name === '.' || name === '..' || !EMBEDDABLE_FILE_RE.test(name)) return;
+                try {
+                    const st = pyodide.FS.stat(dir + '/' + name);
+                    if (pyodide.FS.isDir(st.mode)) return;
+                    const bytes = pyodide.FS.readFile(dir + '/' + name); // Uint8Array
+                    out[name] = {
+                        b64: bytesToBase64(bytes),
+                        ext: name.split('.').pop().toLowerCase()
+                    };
+                } catch (e) { /* unreadable — skip this file */ }
+            });
+            return out;
+        }
+
+        // Write embedded files back into the virtual FS on load.
+        function restoreDataFiles(files) {
+            if (!files || !pyodide || !pyodide.FS) return;
+            Object.keys(files).forEach(name => {
+                try {
+                    const bytes = base64ToBytes(files[name].b64);
+                    pyodide.FS.writeFile(DATA_DIR + '/' + name, bytes);
+                } catch (e) { /* skip a corrupt entry rather than fail the whole load */ }
+            });
+        }
+
+        // Re-display an archived output on a freshly created cell (used when
+        // opening a Save Copy / JSON export / autosave restore). All HTML from
+        // opened files passes through sanitizeHtml before injection.
+        function restoreOutput(cellId, out) {
+            if (!out || !out.kind) return;
+            const cell = document.getElementById(cellId);
+            if (!cell) return;
+            lastOutputs[cellId] = out;
+
+            const output = cell.querySelector('.output');
+            const stdout = out.stdout || "";
+
+            if (out.kind === 'text') {
+                output.innerText = out.text || "";
+                output.classList.toggle('error', !!out.error);
+                output.style.display = (out.text && out.text.length) ? 'block' : 'none';
+                return;
+            }
+            if (stdout) {
+                output.innerText = stdout;
+                output.style.display = 'block';
+            }
+            if (out.kind === 'image' && out.src) {
+                const pc = cell.querySelector('.plot-container');
+                pc.querySelector('img').src = out.src;
+                pc.style.display = 'block';
+            } else if (out.kind === 'html' && out.html) {
+                const tc = cell.querySelector('.table-output');
+                tc.innerHTML = sanitizeHtml(out.html.replace(STYLE_TAG, ''));
+                tc.style.display = 'block';
+            } else if (out.kind === 'plotly' && out.spec && window.Plotly) {
+                const pc = cell.querySelector('.plotly-container');
+                pc.style.display = 'block';
+                Plotly.newPlot(pc.querySelector('.plotly-target'), out.spec.data, out.spec.layout || {},
+                    { responsive: true, displaylogo: false });
+            }
+        }
+
+        // Accepts legacy entries (plain code strings) and rich entries
+        // ({code, output}) interchangeably.
+        function loadCellsFromList(cellList) {
+            document.getElementById('cells-wrapper').innerHTML = '';
+            for (let key in editors) delete editors[key];
+            for (let key in lastOutputs) delete lastOutputs[key];
+            cellList.forEach(entry => {
+                const code = (typeof entry === 'string') ? entry : ((entry && entry.code) || '');
+                const out = (entry && typeof entry === 'object') ? entry.output : null;
+                const cellId = addCell(code);
+                if (isMarkdownCode(code)) {
+                    renderMarkdownCell(cellId);
+                } else if (out) {
+                    restoreOutput(cellId, out);
+                }
+            });
+            rebuildTOC();
+        }
+
+
+        // Export and Save Functions....
+        // IO FUNCTIONS....
+
+        //#endregion
+        //#region file: js/60-io.js
+
+
+         // Export
+        function exportNotebookJson() {
+            let name = prompt("Export notebook JSON as:", "capy_notebook.json");
+            if (name === null) return;
+            name = name.trim() || "capy_notebook.json";
+            if (!/\.json$/i.test(name)) name += ".json";
+            const content = JSON.stringify({
+                cells: collectCellsRich(),
+                files: collectDataFiles()
+            }, null, 2);
+            downloadBlob(content, name, "application/json");
+        }
+
+        // Saving HTML - let's end users just click with the state of the previously saved....
+        function saveHtmlCopy() {
+            // Files ride along only when the embed toggle is on and data/ is
+            // non-empty — the suffix advertises which kind of file this is.
+            const files = collectDataFiles();
+            const hasData = Object.keys(files).length > 0;
+            const suffix = hasData ? ".capy-canvas.html" : ".canvas.html";
+
+            let name = prompt("Save notebook as:", "data_canvas_book" + suffix);
+            if (name === null) return;
+            name = name.trim();
+            if (!name) name = "data_canvas_book" + suffix;
+            if (!/\.html?$/i.test(name)) name += suffix;
+
+            let stateJson = JSON.stringify({
+                cells: collectCellsRich(),
+                files: files            // reuse — don't call collectDataFiles() twice
+            });
+            stateJson = stateJson.replace(/<\//g, "<\\/");
+
+            const updated = PRISTINE_HTML.replace(
+                /(<script id="notebook-data" type="application\/json">)[\s\S]*?(<\/script>)/,
+                (full, open, close) => open + stateJson + close
+            );
+
+            downloadBlob(updated, name, "text/html");
+        }
+        console.log(typeof saveHtmlCopy)
+
+
+        // exporting to a .py. Have to make sure that install() function and markdown is handled correctly...
+        function exportPython() {
+            const chunks = [];
+            collectCellsRich().forEach(item => {
+                const code = item.code;
+                const out = item.output;
+                const m = code.match(MARKDOWN_MAGIC);
+                if (m) {
+                    // Markdown cell -> commented block, tagged so jupytext/VS Code
+                    // round-trips it back into a markdown cell.
+                    const lines = ["# %% [markdown]"];
+                    code.slice(m[0].length).split("\n").forEach(l => {
+                        lines.push(("# " + l).trimEnd());
+                    });
+                    chunks.push(lines.join("\n"));
+                } else {
+                    // Code cell -> plain cell under a # %% marker. The canvas's
+                    // install("pkg") helper doesn't exist in regular Python, so
+                    // rewrite those lines to pip install form.
+                    const body = code.split("\n").map(line => {
+                        const pm = /^(\s*)[%!]pip\s+install\s+(.+)$/.exec(line);
+                        if (pm) return pm[1] + "# pip install " + pm[2].trim();
+                        const im = /^(\s*)install\(([^)]+)\)\s*$/.exec(line);
+                        if (!im) return line;
+                        const quoted = im[2].match(/['"]([^'"]+)['"]/g);
+                        const pkgs = quoted
+                            ? quoted.map(s => s.replace(/['"]/g, '')).join(' ')
+                            : im[2].trim();
+                        return im[1] + "# pip install " + pkgs;
+                    }).join("\n");
+                    let chunk = "# %%\n" + body.trimEnd();
+
+                    // Append the archived output as comments. Un-run cells
+                    // (out === null) export as bare code.
+                    if (out) {
+                        if (out.kind === 'text' && out.text && out.text !== 'Executed successfully.') {
+                            chunk += "\n\n# Output:\n" +
+                                out.text.trimEnd().split("\n").map(l => ("#   " + l).trimEnd()).join("\n");
+                        } else if (out.kind === 'image') {
+                            chunk += "\n\n# Output: [matplotlib figure]";
+                        } else if (out.kind === 'plotly') {
+                            chunk += "\n\n# Output: [plotly figure]";
+                        } else if (out.kind === 'html') {
+                            chunk += "\n\n# Output: [table]";
+                        }
+                    }
+                    chunks.push(chunk);
+                }
+            });
+
+            const header = "# Exported from Data Canvas \u2014 cells delimited with '# %%' markers\n\n";
+            downloadBlob(header + chunks.join("\n\n") + "\n", "data_canvas_export.py", "text/x-python");
+        }
+
+
+
+
+        function downloadBlob(content, filename, mime) {
+            const blob = new Blob([content], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; a.download = filename; a.click();
+            URL.revokeObjectURL(url);
+        }
+
+
+         document.getElementById('dataFileUpload').addEventListener('change', async (e) => {
+            if (!e.target.files.length) return;
+            for (const file of e.target.files) {
+                try {
+                    const buf = await file.arrayBuffer();
+                    pyodide.FS.writeFile(DATA_DIR + '/' + file.name, new Uint8Array(buf));
+                } catch (err) {
+                    alert('Could not write ' + file.name + ' to the data folder: ' + err);
+                }
+            }
+            refreshFilePanel();
+            e.target.value = '';
+
+        });
+
+
+        // ---------------- Python import: the reverse of exportPython ----------------
+        // Parses a '# %%'-delimited .py (jupytext / VS Code / our own export) back
+        // into cells: '# %% [markdown]' blocks are uncommented into %%markdown
+        // cells, '# pip install a b' lines become install("a", "b") again, and
+        // trailing '# Output:' comment blocks (our export artifact) are dropped.
+        // A plain .py with no markers imports as a single cell.
+        function parsePythonToCells(text) {
+            const lines = text.split(/\r?\n/);
+            const chunks = [];
+            let current = { markdown: false, lines: [], preamble: true };
+
+            lines.forEach(line => {
+                const marker = /^\s*#\s*%%(.*)$/.exec(line);
+                if (marker) {
+                    chunks.push(current);
+                    current = { markdown: /\[markdown\]/.test(marker[1]), lines: [], preamble: false };
+                } else {
+                    current.lines.push(line);
+                }
+            });
+            chunks.push(current);
+
+            const cells = [];
+            chunks.forEach(chunk => {
+                if (chunk.markdown) {
+                    const md = chunk.lines.map(l => l.replace(/^\s*#\s?/, '')).join("\n").trim();
+                    if (md.length) cells.push("%%markdown\n" + md);
+                    return;
+                }
+
+                let ls = chunk.lines.slice();
+
+                // Drop a trailing "# Output:" block, but only if everything from
+                // that line onward is comments/blank — a genuine mid-code comment
+                // followed by more code is left untouched.
+                const outIdx = ls.findIndex(l => /^\s*#\s*Output:/.test(l));
+                if (outIdx !== -1 && ls.slice(outIdx).every(l => /^\s*#/.test(l) || l.trim() === '')) {
+                    ls = ls.slice(0, outIdx);
+                }
+
+                // Restore "# pip install a b" -> install("a", "b")
+                ls = ls.map(l => {
+                    const m = /^(\s*)#\s*pip install\s+(.+)$/.exec(l);
+                    if (!m) return l;
+                    return m[1] + "%pip install " + m[2].trim();
+                });
+
+                // The preamble (before the first marker) keeps user content but
+                // drops our own export header.
+                if (chunk.preamble) {
+                    ls = ls.filter(l => !/^#\s*Exported from Data Canvas/.test(l));
+                }
+
+                const body = ls.join("\n").replace(/^\n+|\n+$/g, '');
+                if (body.trim().length) cells.push(body);
+            });
+
+            return cells.length ? cells : [text];
+        }
+
+        // ---------------- File loading ----------------
+
+        // --- 1. Load CSV Data ---
+
+        /* 
+
+        // LEGACY
+        document.getElementById('csvFileInput').addEventListener('change', async (e) => {
+            if(!e.target.files.length) return;
+            const file = e.target.files[0];
+            const text = await file.text();
+
+            pyodide.globals.set("raw_csv_string", text);
+            addCell(`# ${file.name} loaded!\ndf_csv = pd.read_csv(io.StringIO(raw_csv_string))\ndf_csv.head()`);
+            updateStateInspector();
+            e.target.value = '';
+        });
+        */
+
+        // --- 1b. Load Excel Data (parsed client-side with SheetJS, handed to pandas as JSON) ---
+        // Each sheet becomes its own DataFrame named {source_file}_{sheet_name},
+        // e.g. sales_2024_Summary. Raw JSON is stashed in an underscore-prefixed
+        // global (per file) so it stays out of the Memory Inspector and autocomplete.
+
+        // Turn an arbitrary file/sheet name into a valid Python identifier.
+        function toPyIdentifier(name) {
+            let s = String(name).replace(/[^A-Za-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+            if (!s) s = 'sheet';
+            if (/^[0-9]/.test(s)) s = '_' + s;
+            return s;
+        }
+
+        /*
+        // LEGACY
+        document.getElementById('excelFileInput').addEventListener('change', async (e) => {
+            if(!e.target.files.length) return;
+            const file = e.target.files[0];
+            const arrayBuffer = await file.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+
+            // Convert every sheet to an array of row-objects so pandas can build
+            // a DataFrame straight from it, no server round-trip required.
+            const sheetsData = {};
+            workbook.SheetNames.forEach(name => {
+                sheetsData[name] = XLSX.utils.sheet_to_json(workbook.Sheets[name], { defval: null });
+            });
+
+            const base = toPyIdentifier(file.name.replace(/\.[^.]+$/, ''));
+            const rawVar = `_raw_excel_${base}`;
+            const parsedVar = `_excel_${base}`;
+            pyodide.globals.set(rawVar, JSON.stringify(sheetsData));
+
+            const lines = [
+                `# ${file.name} loaded! Sheets: ${workbook.SheetNames.join(', ')}`,
+                `${parsedVar} = json.loads(${rawVar})`
+            ];
+
+            const dfNames = [];
+            const seen = {};
+            workbook.SheetNames.forEach(name => {
+                let dfName = `${base}_${toPyIdentifier(name)}`;
+                // Guard against two sheet names sanitizing to the same identifier
+                if (seen[dfName] !== undefined) {
+                    seen[dfName]++;
+                    dfName = `${dfName}_${seen[dfName]}`;
+                } else {
+                    seen[dfName] = 1;
+                }
+                dfNames.push(dfName);
+                lines.push(`${dfName} = pd.DataFrame(${parsedVar}[${JSON.stringify(name)}])`);
+            });
+
+            lines.push('', `${dfNames[0]}.head()`);
+            addCell(lines.join('\n'));
+            updateStateInspector();
+            e.target.value = '';
+        });
+        */
+
+        // --- 2. Open a saved notebook: .json export OR a Save Copy .html ---
+        // --- 2. Open a saved notebook: .json export OR a Save Copy .html ---
+        document.getElementById('loadNotebookInput').addEventListener('change', async (e) => {
+            if(!e.target.files.length) return;
+            const file = e.target.files[0];
+            const text = await file.text();
+            try {
+                let cells = null;
+                let embeddedFiles = null;
+
+                if (/\.html?$/i.test(file.name)) {
+                    // Pull the embedded notebook-data payload out of a saved copy
+                    const m = /<script id="notebook-data" type="application\/json">([\s\S]*?)<\/script>/.exec(text);
+                    if (m) {
+                        const parsed = JSON.parse(m[1]);
+                        cells = parsed.cells || null;
+                        embeddedFiles = parsed.files || null;
+                    }
+                    if (!cells || !cells.length) throw new Error("No saved cells found in this HTML file.");
+                } else {
+                    const data = JSON.parse(text);
+                    cells = data.cells || null;
+                    embeddedFiles = data.files || null;
+                    if (!cells) throw new Error("Not a valid notebook JSON file.");
+                }
+
+                if (embeddedFiles) restoreDataFiles(embeddedFiles);
+                loadCellsFromList(cells);
+                refreshFilePanel();
+                scheduleAutosave();
+            } catch (err) { alert("Error: " + err.message); }
+            e.target.value = '';
+        });
+
+        // --- 3. Import a Python script (.py) — parse # %% cells (and plain .py)
+        // into the notebook. Keeps the running Python state, virtual FS, and
+        // inspector intact; only the cell list is replaced.
+        document.getElementById('importPythonInput').addEventListener('change', async (e) => {
+            if (!e.target.files.length) return;
+            const file = e.target.files[0];
+            const text = await file.text();
+            try {
+                const cells = parsePythonToCells(text);
+                loadCellsFromList(cells);
+                scheduleAutosave();
+            } catch (err) {
+                alert("Error importing Python script: " + err.message);
+            }
+            e.target.value = '';
+        });
+
+        //#endregion
+        //#region file: js/55-vfs.js
+        // ---------------- Virtual filesystem file panel ----------------
+        // pandas df.to_csv("x.csv")
+        // duckdb COPY ... TO 'x.json' — anything Python writes lands in
+        // Emscripten's in-memory FS. Everything runs inside DATA_DIR (created
+        // at boot, set as the cwd), so we simply list that directory and show
+        // every recognized data file in the sidebar's Files panel, with
+        // download buttons and an Upload button for putting files in.
+        const DATA_FILE_RE = /\.(csv|xlsx|json|parquet)$/i;
+        const FILE_MIME = {
+            csv:     'text/csv',
+            json:    'application/json',
+            xlsx:    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            parquet: 'application/vnd.apache.parquet'
+        };
+
+        function pyCwd() {
+            try { return pyodide.FS.cwd(); } catch (e) { return DATA_DIR; }
+        }
+
+        function listVirtualFiles() {
+            const files = [];
+            if (!pyodide || !pyodide.FS) return files;
+            const dir = pyCwd();
+            let names = [];
+            try { names = pyodide.FS.readdir(dir); } catch (e) { return files; }
+            names.forEach(name => {
+                if (name === '.' || name === '..' || !DATA_FILE_RE.test(name)) return;
+                try {
+                    const st = pyodide.FS.stat(dir + '/' + name);
+                    if (pyodide.FS.isDir(st.mode)) return;
+                    files.push({ name: name, size: st.size, mtime: Number(st.mtime) });
+                } catch (e) { /* unreadable entry — skip */ }
+            });
+            // Most recently written first
+            return files.sort((a, b) => b.mtime - a.mtime || a.name.localeCompare(b.name));
+        }
+
+        function formatBytes(n) {
+            if (n === null || n === undefined) return '';
+            if (n < 1024) return n + ' B';
+            if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+            return (n / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function downloadVirtualFile(name) {
+            try {
+                const bytes = pyodide.FS.readFile(pyCwd() + '/' + name); // Uint8Array
+                const ext = name.split('.').pop().toLowerCase();
+                downloadBlob(bytes, name, FILE_MIME[ext] || 'application/octet-stream');
+            } catch (e) {
+                alert('Could not read ' + name + ' from the virtual filesystem \u2014 it may have been deleted or the runtime was restarted.');
+            }
+        }
+
+
+        function deleteVirtualFile(name) {
+            if (!confirm('Delete ' + name + ' from the data folder? This cannot be undone.')) return;
+            try {
+                pyodide.FS.unlink(pyCwd() + '/' + name);
+                refreshFilePanel();
+            } catch (e) {
+                alert('Could not delete ' + name + ' \u2014 it may have already been removed or the runtime was restarted.');
+            }
+        }
+
+        // for creating a zip file. dependency-free for now (no real compression.)
+        function crc32(bytes) {
+            let c, crc = 0xFFFFFFFF;
+            for (let i = 0; i < bytes.length; i++) {
+                c = (crc ^ bytes[i]) & 0xFF;
+                for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+                crc = (crc >>> 8) ^ c;
+            }
+            return (crc ^ 0xFFFFFFFF) >>> 0;
+
+        }
+
+        // ---- Minimal ZIP writer (store method, no compression) ----
+        function zipFiles(entries) {
+            // entries: [{ name: string, bytes: Uint8Array }]
+            const enc = new TextEncoder();
+            const chunks = [];
+            const central = [];
+            let offset = 0;
+
+            const u16 = n => new Uint8Array([n & 0xff, (n >>> 8) & 0xff]);
+            const u32 = n => new Uint8Array([n & 0xff, (n >>> 8) & 0xff, (n >>> 16) & 0xff, (n >>> 24) & 0xff]);
+
+            entries.forEach(({ name, bytes }) => {
+                const nameBytes = enc.encode(name);
+                const crc = crc32(bytes);
+                const size = bytes.length;
+
+                // Local file header
+                const local = [
+                    u32(0x04034b50),      // signature
+                    u16(20),              // version needed
+                    u16(0),               // flags
+                    u16(0),               // method 0 = store
+                    u16(0), u16(0),       // mod time / date (left 0)
+                    u32(crc),
+                    u32(size),            // compressed size
+                    u32(size),            // uncompressed size
+                    u16(nameBytes.length),
+                    u16(0),               // extra len
+                    nameBytes,
+                    bytes
+                ];
+                local.forEach(c => chunks.push(c));
+
+                // Central directory record (kept for the end)
+                central.push([
+                    u32(0x02014b50),      // signature
+                    u16(20), u16(20),     // version made by / needed
+                    u16(0), u16(0),       // flags / method
+                    u16(0), u16(0),       // time / date
+                    u32(crc),
+                    u32(size), u32(size),
+                    u16(nameBytes.length),
+                    u16(0), u16(0),       // extra / comment len
+                    u16(0), u16(0),       // disk # / internal attrs
+                    u32(0),               // external attrs
+                    u32(offset),          // local header offset
+                    nameBytes
+                ]);
+
+                offset += local.reduce((s, c) => s + c.length, 0);
+            });
+
+            const cdStart = offset;
+            central.forEach(rec => rec.forEach(c => { chunks.push(c); offset += c.length; }));
+            const cdSize = offset - cdStart;
+
+            // End of central directory
+            [
+                u32(0x06054b50),
+                u16(0), u16(0),                       // disk numbers
+                u16(entries.length), u16(entries.length),
+                u32(cdSize), u32(cdStart),
+                u16(0)                                // comment len
+            ].forEach(c => chunks.push(c));
+
+            // Flatten
+            const total = chunks.reduce((s, c) => s + c.length, 0);
+            const out = new Uint8Array(total);
+            let p = 0;
+            chunks.forEach(c => { out.set(c, p); p += c.length; });
+            return out;
+        }
+
+        function downloadAllFilesAsZip() {
+            const files = listVirtualFiles();
+            if (!files.length) { alert('No files in data/ to zip.'); return; }
+
+            const payload = {};
+            files.forEach(f => {
+                payload[f.name] = pyodide.FS.readFile(pyCwd() + '/' + f.name); // Uint8Array
+            });
+
+            // level 6 = balanced; use 0 for store (fast, no compression)
+            fflate.zip(payload, { level: 6 }, (err, data) => {
+                if (err) { alert('Zip failed: ' + err); return; }
+                downloadBlob(data, 'data_canvas_files.zip', 'application/zip');
+            });
+        }
+
+
+
+        function refreshFilePanel() {
+            const list = document.getElementById('file-list');
+            const empty = document.getElementById('files-empty');
+            if (!list) return;
+            const files = listVirtualFiles();
+            list.innerHTML = '';
+            if (!files.length) {
+                list.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+            list.style.display = 'block';
+            empty.style.display = 'none';
+            files.forEach(f => {
+                const row = document.createElement('div');
+                row.className = 'file-row';
+
+                const info = document.createElement('div');
+                info.className = 'file-info';
+                const nm = document.createElement('div');
+                nm.className = 'file-name';
+                nm.textContent = f.name;
+                const meta = document.createElement('div');
+                meta.className = 'file-meta';
+                meta.textContent = formatBytes(f.size) + ' \u00b7 ' + new Date(f.mtime).toLocaleTimeString();
+                info.appendChild(nm);
+                info.appendChild(meta);
+
+                 const btn = document.createElement('button');
+                btn.className = 'btn btn-slate file-dl';
+                btn.title = 'Download ' + f.name;
+                btn.textContent = '\u2913';
+                btn.addEventListener('click', () => downloadVirtualFile(f.name));
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'btn btn-slate file-dl';
+                delBtn.title = 'Delete ' + f.name;
+                delBtn.textContent = '\u2715';
+                delBtn.style.marginLeft = '6px';
+                delBtn.addEventListener('click', () => deleteVirtualFile(f.name));
+
+                const btnGroup = document.createElement('div');
+                btnGroup.style.display = 'flex';
+                btnGroup.style.flex = '0 0 auto';
+                btnGroup.appendChild(btn);
+                btnGroup.appendChild(delBtn);
+
+                row.appendChild(info);
+                row.appendChild(btnGroup);
+                list.appendChild(row);
+            });
+        }
+
+
+        // Show the cache contents as filename + size. Full URLs are set as the
+        // row's title only; buffers are never read or rendered.
+        function refreshCacheList() {
+            const list = document.getElementById('cache-list');
+            const empty = document.getElementById('cache-empty');
+            if (!list) return;
+            cacheDbList().then(rows => {
+                list.innerHTML = '';
+                if (!rows.length) {
+                    list.style.display = 'none';
+                    empty.style.display = 'block';
+                    empty.textContent = 'Nothing cached yet.';
+                    return;
+                }
+                rows.sort((a, b) => b.size - a.size);
+                const total = rows.reduce((s, r) => s + r.size, 0);
+
+                list.style.display = 'block';
+                empty.style.display = 'none';
+                rows.forEach(r => {
+                    let label = r.url;
+                    try { label = new URL(r.url).pathname.split('/').pop() || r.url; } catch (e) { /* keep raw */ }
+
+                    const row = document.createElement('div');
+                    row.className = 'file-row';
+                    row.title = r.url;                 // textContent/title only — never innerHTML
+
+                    const info = document.createElement('div');
+                    info.className = 'file-info';
+                    const nm = document.createElement('div');
+                    nm.className = 'file-name';
+                    nm.textContent = label;
+                    const meta = document.createElement('div');
+                    meta.className = 'file-meta';
+                    meta.textContent = formatBytes(r.size);
+                    info.appendChild(nm);
+                    info.appendChild(meta);
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'btn btn-slate file-dl';
+                    delBtn.title = 'Remove ' + label + ' from the cache';
+                    delBtn.textContent = '\u2715';
+                    delBtn.addEventListener('click', () => {
+                        if (!confirm('Remove ' + label + ' from the package cache?\n\nIt will be re-downloaded on the next load that needs it.')) return;
+                        cacheDbDelete(r.url)
+                            .then(refreshCacheList)
+                            .catch(() => alert('Could not remove ' + label + ' from the cache.'));
+                    });
+
+                    row.appendChild(info);
+                    row.appendChild(delBtn);
+                    list.appendChild(row);
+                    
+                });
+
+                const totalRow = document.createElement('div');
+                totalRow.className = 'file-row';
+                totalRow.style.fontWeight = '700';
+                totalRow.textContent = `${rows.length} files \u00b7 ${formatBytes(total)}`;
+                list.appendChild(totalRow);
+            }).catch(() => {
+                list.style.display = 'none';
+                empty.style.display = 'block';
+                empty.textContent = 'Cache unavailable in this browser.';
+            });
+        }
+
+        document.getElementById('refreshCacheListBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            refreshCacheList();
+        });
+        document.getElementById('cacheSection').addEventListener('toggle', function () {
+            if (this.open) refreshCacheList();
+        });
+
+        // Both buttons live inside the <summary>, so plain clicks would also
+        // toggle the section open/closed — preventDefault suppresses that.
+        document.getElementById('refreshFilesBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            refreshFilePanel();
+        });
+
+        document.getElementById('uploadFilesBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('dataFileUpload').click();
+        });
+
+        // ZIP DOWNLOAD - WIP
+        document.getElementById("downloadZipBtn").style.display = "none";
+
+        /*
+
+        document.getElementById('downloadZipBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            downloadAllFilesAsZip();
+        });
+        */
+
+
+
+        //#endregion
+        //#region file: js/70-cells.js
+
+        // ---------------- UI: Cells ----------------
+        // The cell list is the DOM itself — cells-wrapper's children in document
+        // order are the linked list. addCell supports insertion before/after any
+        // node; execution, save, export, and the TOC all read document order.
+        function addCell(defaultCode = "", refCellId = null, position = null) {
+            cellCount++;
+            const cellId = `cell-${cellCount}`;
+            const textareaId = `textarea-${cellCount}`;
+
+            const cellHtml = `
+                <div class="cell" id="${cellId}">
+                    <button class="insert-btn top" onclick="insertCellAbove('${cellId}')" title="Insert cell above">+</button>
+                    <button class="insert-btn bottom" onclick="insertCellBelow('${cellId}')" title="Insert cell below">+</button>
+                    <textarea id="${textareaId}"></textarea>
+
+                    <div class="cell-actions">
+                        <div class="action-group">
+                            <button class="btn btn-run" onclick="runCell('${cellId}')">
+                                <svg width="9" height="9" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.2v9.6L10.4 6z"/></svg>
+                                Run
+                            </button>
+                        </div>
+                        <button class="btn btn-del" onclick="deleteCell('${cellId}')">Delete</button>
+                    </div>
+
+                    <div class="output"></div>
+                    <div class="plot-container"><img src="" alt="Matplotlib Plot"></div>
+                    <div class="plotly-container"><div class="plotly-target"></div></div>
+                    <div class="table-output"></div>
+                    <div class="markdown-output" title="Double-click to edit"></div>
+                </div>
+            `;
+
+            const ref = refCellId ? document.getElementById(refCellId) : null;
+            if (ref && position === 'before') {
+                ref.insertAdjacentHTML('beforebegin', cellHtml);
+            } else if (ref && position === 'after') {
+                ref.insertAdjacentHTML('afterend', cellHtml);
+            } else {
+                document.getElementById('cells-wrapper').insertAdjacentHTML('beforeend', cellHtml);
+            }
+
+            const textarea = document.getElementById(textareaId);
+            textarea.value = defaultCode; // set via .value so HTML in markdown/code isn't parsed
+
+            const cm = CodeMirror.fromTextArea(textarea, {
+                mode: isMarkdownCode(defaultCode) ? "markdown" : "python",
+                theme: currentTheme, lineNumbers: true, indentUnit: 4, viewportMargin: Infinity,
+                extraKeys: {
+                    "Shift-Enter": function() { runCellAndAdvance(cellId); },
+                    "Ctrl-Enter": function() { runCell(cellId); },
+                    "Cmd-Enter": function() { runCell(cellId); },
+                    "Ctrl-Space": function(instance) {
+                        if (instance.getOption("mode") !== "python") return;
+                        CodeMirror.showHint(instance, CodeMirror.hint.python, { completeSingle: false });
+                    }
+                }
+            });
+            cm.on("inputRead", function(instance, changeObj) {
+                if (instance.getOption("mode") !== "python") return;
+                if (changeObj.text && changeObj.text[0] === ".") {
+                    CodeMirror.showHint(instance, CodeMirror.hint.python, { completeSingle: false });
+                }
+            });
+            // Re-check the mode on every edit (adding/removing %%markdown), keep
+            // the Contents panel in sync, and autosave as the user types.
+            cm.on("change", function(instance) {
+                syncCellMode(instance);
+                scheduleTocRebuild();
+                scheduleAutosave();
+            });
+            editors[cellId] = cm;
+
+            // Double-click a rendered markdown cell to get the editor back
+            document.getElementById(cellId).querySelector('.markdown-output')
+                .addEventListener('dblclick', () => showEditorForCell(cellId));
+
+            return cellId;
+        }
+
+        // Linked-list insertions, exposed on the hover handles.
+        function insertCellAbove(cellId) {
+            const id = addCell("", cellId, 'before');
+            editors[id].focus();
+            scheduleAutosave();
+        }
+        function insertCellBelow(cellId) {
+            const id = addCell("", cellId, 'after');
+            editors[id].focus();
+            scheduleAutosave();
+        }
+
+        function deleteCell(cellId) {
+            document.getElementById(cellId).remove();
+            delete editors[cellId];
+            delete lastOutputs[cellId];
+            rebuildTOC();
+            scheduleAutosave();
+        }
+
+        // Jupyter-style Shift+Enter: run, then focus the next cell (creating one
+        // at the end of the notebook if there isn't one).
+        async function runCellAndAdvance(cellId) {
+            await runCell(cellId);
+            const cells = Array.from(document.querySelectorAll('#cells-wrapper .cell'));
+            const idx = cells.findIndex(c => c.id === cellId);
+            let nextId = (idx >= 0 && idx < cells.length - 1) ? cells[idx + 1].id : null;
+            if (!nextId) nextId = addCell();
+            const nextCm = editors[nextId];
+            const nextCell = document.getElementById(nextId);
+            if (nextCell) nextCell.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            // Focus the editor unless it's a rendered markdown cell
+            if (nextCm && nextCm.getWrapperElement().style.display !== 'none') nextCm.focus();
+        }
+        //#endregion
+
+        //#region file: js/75-exec.js
+
+        // ---------------- Core Execution Logic ----------------
+
+        async function runCell(cellId) {
+            const cell = document.getElementById(cellId);
+            const output = cell.querySelector('.output');
+            const plotContainer = cell.querySelector('.plot-container');
+            const plotImage = plotContainer.querySelector('img');
+            const plotlyContainer = cell.querySelector('.plotly-container');
+            const plotlyTarget = plotlyContainer.querySelector('.plotly-target');
+            const tableContainer = cell.querySelector('.table-output');
+            const mdContainer = cell.querySelector('.markdown-output');
+            const runBtn = cell.querySelector('.btn-run');
+
+            let inputCode = editors[cellId].getValue();
+
+            // ---- Markdown cell: render instead of executing ----
+            if (isMarkdownCode(inputCode)) {
+                renderMarkdownCell(cellId);
+                rebuildTOC();
+                scheduleAutosave();
+                return;
+            }
+
+            mdContainer.style.display = 'none';
+            cell.classList.remove('md-rendered');
+            output.style.display = 'block';
+            plotContainer.style.display = 'none';
+            plotlyContainer.style.display = 'none';
+            tableContainer.style.display = 'none';
+            output.classList.remove('error');
+            runBtn.disabled = true;
+            const originalLabel = runBtn.innerHTML;
+            runBtn.innerHTML = 'Running\u2026';
+            let printedText = "";
+            let cellOutput = null; // archived for Save Copy / Export / autosave
+
+            try {
+                // Intercept installs — `%pip install pkg1 pkg2` and legacy `install("pkg")`
+                const packagesToInstall = [];
+
+                // %pip install (also accepts !pip); strip flags like -q / -U
+                inputCode = inputCode.replace(
+                    /^[ \t]*[%!]pip\s+install\s+([^\n]+)$/gm,
+                    (full, args) => {
+                        args.trim().split(/\s+/).forEach(tok => {
+                            if (tok.startsWith('-')) return;
+                            packagesToInstall.push(tok.replace(/^['"]|['"]$/g, ''));
+                        });
+                        return `# Intercepted: ${full.trim()}`;
+                    }
+                );
+
+                // legacy install("pkg", "pkg2")
+                const installRegex = /^\s*install\(([^)]+)\)/gm;
+                let match;
+                while ((match = installRegex.exec(inputCode)) !== null) {
+                    const args = match[1].match(/['"]([^'"]+)['"]/g);
+                    if (args) args.forEach(arg => packagesToInstall.push(arg.replace(/['"]/g, '')));
+                    inputCode = inputCode.replace(match[0], `# Intercepted: ${match[0]}`);
+                }
+
+                if (packagesToInstall.length > 0) {
+                    output.innerText = `Fetching packages\u2026`;
+                    const micropip = pyodide.pyimport("micropip");
+                    for (const pkg of packagesToInstall) await micropip.install(pkg);
+                }
+
+                output.innerText = "Running\u2026";
+
+                // Run Python, capturing anything print() writes along the way
+                pyodide.runPython("start_stdout_capture()");
+                let result;
+                try {
+                    result = await pyodide.runPythonAsync(inputCode);
+                } finally {
+                    // Always read the buffer back and restore stdout, even on error,
+                    // so partial print() output before a crash isn't lost.
+                    printedText = pyodide.runPython("end_stdout_capture()");
+                }
+
+                // A PyProxy result goes through the Python-side dispatcher, which
+                // picks table / image / plotly / text. JS primitives fall through
+                // to the plain-text path.
+                const isProxy = result && typeof result === 'object' && typeof result.type === 'string';
+                let rich = null;
+                if (isProxy) {
+                    pyodide.globals.set("_temp_result", result);
+                    try {
+                        rich = JSON.parse(pyodide.runPython("render_result(_temp_result)"));
+                    } catch (e) {
+                        rich = { kind: 'text', text: String(result) };
+                    }
+                }
+
+                const showStdoutOnly = () => {
+                    if (printedText && printedText.length > 0) {
+                        output.innerText = printedText;
+                        output.style.display = 'block';
+                    } else {
+                        output.style.display = 'none';
+                    }
+                };
+
+                if (rich && rich.kind === 'plotly') {
+                    const spec = JSON.parse(rich.spec);
+                    Plotly.purge(plotlyTarget);
+                    plotlyContainer.style.display = 'block';
+                    await Plotly.newPlot(plotlyTarget, spec.data, spec.layout || {}, { responsive: true, displaylogo: false });
+                    showStdoutOnly();
+                    cellOutput = { kind: 'plotly', spec: { data: spec.data, layout: spec.layout || {} }, stdout: printedText || "" };
+                } else if (rich && rich.kind === 'image') {
+                    plotImage.src = rich.src;
+                    plotContainer.style.display = 'block';
+                    showStdoutOnly();
+                    cellOutput = { kind: 'image', src: rich.src, stdout: printedText || "" };
+                } else if (rich && rich.kind === 'html') {
+                    // Sanitize once; the sanitized HTML is both displayed and
+                    // archived, so saved files carry clean markup.
+                    const safeHtml = sanitizeHtml(rich.html.replace(STYLE_TAG, ''));
+                    tableContainer.innerHTML = safeHtml;
+                    tableContainer.style.display = 'block';
+                    showStdoutOnly();
+                    cellOutput = { kind: 'html', html: safeHtml, stdout: printedText || "" };
+                } else {
+                    // Plain text: combine stdout with the result's repr (rich text
+                    // for proxies, String() for JS primitives).
+                    const resultText = rich ? rich.text : (result !== undefined ? String(result) : null);
+                    let combined = printedText || "";
+                    if (resultText !== null && resultText !== undefined) {
+                        if (combined.length > 0 && !combined.endsWith("\n")) combined += "\n";
+                        combined += resultText;
+                    }
+                    output.innerText = combined.length > 0 ? combined : "Executed successfully.";
+                    cellOutput = { kind: 'text', text: output.innerText, error: false };
+                }
+
+                updateStateInspector();
+            } catch (err) {
+                output.classList.add('error');
+                let combined = printedText || "";
+                if (combined.length > 0 && !combined.endsWith("\n")) combined += "\n";
+                combined += String(err);
+                output.innerText = combined;
+                output.style.display = 'block';
+                cellOutput = { kind: 'text', text: combined, error: true };
+            } finally {
+                // Refresh the Files panel so anything this cell wrote to the
+                // virtual FS shows up — runs on error too, so partial writes
+                // before a crash are still recoverable. FS hiccups must never
+                // mask the cell result.
+                try { refreshFilePanel(); } catch (e) { /* no-op */ }
+                lastOutputs[cellId] = cellOutput;
+                scheduleAutosave();
+                runBtn.disabled = false;
+                runBtn.innerHTML = originalLabel;
+            }
+        }
+
+        // ---------------- Run All ----------------
+        async function runAllCells() {
+            const runAllBtn = document.getElementById('runAllBtn');
+            if (runAllBtn.disabled) return;
+            runAllBtn.disabled = true;
+            const originalLabel = runAllBtn.innerHTML;
+            runAllBtn.innerHTML = 'Running\u2026';
+
+            try {
+                const ids = Array.from(document.querySelectorAll('#cells-wrapper .cell')).map(c => c.id);
+                for (const id of ids) {
+                    if (editors[id]) await runCell(id); // use the run cell Button; running is linear.....
+                }
+            } finally {
+                runAllBtn.disabled = false; // make sure that the button is no longer disabled.
+                runAllBtn.innerHTML = originalLabel; // reset lable.
+            }
+        }
+
+        //#endregion 
+
+        //#region file: js/80-memory-inspector.js
+
+        // ---------------- Memory Inspector ----------------
+        function updateStateInspector() {
+            let records = [];
+            try {
+                records = JSON.parse(pyodide.runPython("export_state_records()"));
+            } catch (e) {
+                console.error("State export failed:", e);
+                return;
+            }
+
+            const tbody = document.getElementById('state-table-body');
+            const table = document.getElementById('state-table');
+            const empty = document.getElementById('state-empty');
+            tbody.innerHTML = '';
+
+            if (records.length === 0) {
+                table.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+
+            table.style.display = 'table';
+            empty.style.display = 'none';
+
+            records.forEach(r => {
+                const tr = document.createElement('tr');
+
+                const nameTd = document.createElement('td');
+                nameTd.className = 'var-name';
+                nameTd.textContent = r.name;
+
+                const typeTd = document.createElement('td');
+                typeTd.className = 'var-type';
+                typeTd.textContent = r.type;
+
+                const valueTd = document.createElement('td');
+                valueTd.className = 'var-value';
+                valueTd.textContent = r.preview;
+                valueTd.title = r.preview;
+
+                // Give the experimental cache entry a subtle marker color
+                if (r.name === 'package_cache_info') {
+                    nameTd.style.color = 'var(--text-faint)';
+                }
+
+                tr.appendChild(nameTd);
+                tr.appendChild(typeTd);
+                tr.appendChild(valueTd);
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Inline onclick attributes in the HTML need these on window,
+        // since everything above lives inside this DOMContentLoaded closure.
+        Object.assign(window, {
+            toggleTheme, exportNotebookJson, exportPython, saveHtmlCopy,
+            runAllCells, runCell, deleteCell, insertCellAbove, insertCellBelow
+        });
+
+        initPyodide();
+        document.getElementById('addCellBtn').addEventListener('click', () => addCell());
+        //#endregion
+    });
+
+
+    
+    </script>
+
+
+</body>
+</html>

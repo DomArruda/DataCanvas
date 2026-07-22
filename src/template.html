@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>Data Canvas</title>
+
+    <script id="notebook-data" type="application/json">{"cells":[]}</script>
+
+    <!-- Out main scripts, defer used for asynch..........-->
+    <!-- #region file: cdn.html -->
+    <!-- #endregion -->
+
+    <!--
+      Supply-chain hardening (recommended before publishing): add
+        integrity="sha384-..." crossorigin="anonymous"
+      to each <script> tag above. Generate each hash yourself against the
+      exact URL, e.g.:
+        curl -s <URL> | openssl dgst -sha384 -binary | openssl base64 -A
+      (or use https://www.srihash.org). Don't copy hashes from elsewhere —
+      they must be byte-exact, and a wrong hash makes the browser refuse
+      the script entirely.
+    -->
+
+
+    <!--Some CSS...-->
+    <style>
+    /* #region file: styles.css */
+        /* #endregion */
+
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <div class="nav-brand"><span class="brand-mark"></span>Data Canvas</div>
+        <div class="nav-controls">
+            <label class="cache-toggle" title="Store downloaded packages in this browser's IndexedDB so reloads are much faster. Takes full effect on the next load.">
+                <input type="checkbox" id="pkgCacheToggle" />
+                Cache packages <span class="exp">(experimental)</span>
+            </label>
+            <span id="cacheBadge"></span>
+            <button class="btn btn-slate" id="clearCacheBtn">Clear cache</button>
+            <span class="nav-divider"></span>
+            <button class="btn btn-slate" id="themeToggleBtn" onclick="toggleTheme()">Light mode</button>
+            <span class="nav-divider"></span>
+
+            <div class="menu"> <!--Our Main buttons at the top - used for import, export, etc.-->
+                <button class="btn btn-slate" id="importMenuBtn">Import &#9662;</button>
+                <div class="menu-list" id="importMenuList">
+                    <label class="menu-item">
+                        Notebook (.json / .html)
+                        <input type="file" id="loadNotebookInput" class="hidden-file-input" accept=".json,.html,.canvas.html,.capy-canvas.html" disabled />
+                    </label>
+                    <label class="menu-item">
+                        Python script (.py)
+                        <input type="file" id="importPythonInput" class="hidden-file-input" accept=".py" disabled />
+                    </label>
+                    <!---
+                    <label class="menu-item">
+                        CSV data
+                        <input type="file" id="csvFileInput" class="hidden-file-input" accept=".csv" disabled />
+                    </label>
+                    <label class="menu-item">
+                        Excel data
+                        <input type="file" id="excelFileInput" class="hidden-file-input" accept=".xlsx,.xls" disabled />
+                    </label>
+                    <!-->
+                </div>
+            </div>
+
+            <div class="menu"> <!--Export Types: -->
+                <button class="btn btn-indigo" id="exportMenuBtn">Export &#9662;</button>
+                <div class="menu-list" id="exportMenuList">
+                    <button class="menu-item" onclick="saveHtmlCopy()">Save Copy (.html)</button>
+                    <button class="menu-item" onclick="exportNotebookJson()">Notebook JSON</button>
+                    <button class="menu-item" onclick="exportPython()">Python script (.py)</button>
+                </div>
+            </div>
+
+            <span class="nav-divider"></span>
+            <button class="btn btn-green" id="runAllBtn" onclick="runAllCells()" disabled> <!--Triggers the runAllCells() function....-->
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1.2v9.6L10.4 6z"/></svg>
+                Run All
+            </button>
+            <button class="btn btn-red" onclick="location.reload()">Restart</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <nav class="toc" aria-label="Contents">
+            <div class="toc-title">Contents</div>
+            <ul id="toc-list"></ul>
+            <p id="toc-empty">Headings from your <code style="font-size:11px;">%%markdown</code> cells will appear here, like a table of contents.</p>
+        </nav>
+
+        <div class="notebook" id="notebook-container">
+            <div class="status-bar" id="status">
+                <span class="spinner"></span><span id="status-text">Loading the Python runtime&hellip;</span>
+            </div>
+
+            <div class="restore-bar" id="restoreBar">
+                <span id="restoreText">Unsaved work from this browser was found.</span>
+                <span class="restore-actions">
+                    <button class="btn btn-indigo" id="restoreBtn">Restore</button>
+                    <button class="btn btn-slate" id="restoreDismissBtn">Dismiss</button>
+                </span>
+            </div>
+
+            <details class="howto">
+                <summary>How to use this canvas</summary>
+                <div class="howto-body">
+                    <p><strong>Code cells</strong> run real Python in your browser (pandas, numpy, matplotlib, seaborn, pandas, duckdb, and plotly are pre-installed). The last expression in a cell is displayed &mdash; DataFrames (pandas and duckdb queries) render as tables, matplotlib/pandas plots as images, and plotly figures stay interactive. Hover a cell to reveal <code>+</code> handles for inserting a new cell above or below it.</p>
+                    <p><strong>Shortcuts</strong> &mdash; <code>Shift+Enter</code> runs a cell and moves to the next (creating one at the end); <code>Ctrl+Enter</code> (or <code>Cmd+Enter</code>) runs in place; <code>Ctrl+Space</code> autocompletes.</p>
+                    <p><strong>Markdown cells</strong> &mdash; start a cell with <code>%%markdown</code> to write notes. Run renders it; double-click the rendered text to edit again. Headings (<code>#</code>, <code>##</code>, <code>###</code>) build the Contents panel on the left.</p>
+                    <p><strong>Data</strong> &mdash; everything runs inside a <code>data/</code> folder. Upload files into it from the <em>Files</em> panel (right sidebar) and read them by plain filename &mdash; <code>pd.read_csv("sales.csv")</code>.<strong>Please note that files are not cached between sessions. </strong>Import &rarr; CSV or Excel also creates DataFrames for you automatically (Excel: one DataFrame per sheet, named <code>filename_sheetname</code>). Need another package? Write <code>%pip install package-name</code> in a cell (space-separate multiple packages; version pins like <code>pandas==2.2.0</code> work). The older <code>install("package-name")</code> form still runs.</p>
+                    <p><strong>Exporting data</strong> &mdash; write a file the normal way &mdash; pandas <code>df.to_csv("results.csv")</code>, or duckdb <code>COPY ... TO 'results.json'</code> &mdash; and it appears in the <em>Files</em> panel with a download button. Supported types: <code>.csv</code>, <code>.xlsx</code>, <code>.json</code>, <code>.parquet</code>. (Note: pandas <code>.to_excel()</code> needs <code>install("openpyxl")</code> first; for parquet, use duckdb.) These files live in the browser's in-memory filesystem only: they aren't baked into Save Copy, and <em>Restart</em> clears them &mdash; download what you need first.</p>
+                    <p><strong>Saving</strong> &mdash; your work autosaves in this browser as you type. Export &rarr; <em>Save Copy</em> downloads this very HTML file with your cells <em>and their outputs</em> baked in; open the copy later and everything is restored, no re-running needed (cells you never ran come back as plain code). Export &rarr; <em>Notebook JSON</em> saves cells + outputs as a small file; <em>Python script</em> writes a <code>.py</code> with <code># %%</code> cell markers and outputs as comments. Import &rarr; <em>Notebook</em> opens either saved format, and Import &rarr; <em>Python script</em> parses a <code># %%</code>-marked <code>.py</code> (including this canvas's own exports) back into cells. Note: loaded data files aren't embedded &mdash; re-load your CSV/Excel after opening a saved copy.</p>
+                    <p><strong>Performance</strong> &mdash; tick <em>Cache packages (experimental)</em> to store the Python runtime and packages in your browser (IndexedDB). The first load still downloads everything; every load after that restores from cache and is dramatically faster. When active, a <code>package_cache_info</code> entry appears in the Memory Inspector. Use <em>Clear cache</em> if packages ever misbehave.</p>
+                </div>
+            </details>
+
+            <details class="howto">
+                <summary>Disclaimer</summary>
+                <div class="howto-body">
+                    <p><strong>Notebooks are programs.</strong> Opening a notebook file and running its cells executes that author's Python code in your browser. The browser sandbox keeps it away from your files and operating system, but it can still make network requests, use your bandwidth and memory, and tie up this tab. Only run notebooks from people you trust &mdash; the same rule as any Jupyter notebook or downloaded script.</p>
+                    <p><strong>Rendered content is sanitized, not guaranteed.</strong> Markdown cells and table outputs from opened files are cleaned with DOMPurify before display. Treat shared notebook files with the same caution you'd give any file from the internet.</p>
+                    <p><strong>Don't paste secrets into cells.</strong> Autosave keeps your work (including anything you paste, like API keys or passwords) in this browser's local storage, and Save Copy / Export bake cell contents into the files you share. Assume anything typed in a cell may end up in a shared file.</p>
+                    <p><strong>No interrupt.</strong> An infinite loop (<code>while True:</code>) will freeze this tab &mdash; use <em>Restart</em> to recover. Very large datasets can exhaust the tab's memory.</p>
+                    <p><strong>Dependencies come from public CDNs</strong> (Pyodide, CodeMirror, plotly, and friends), so the first load needs internet access. The experimental package cache stores downloads in this browser's IndexedDB; <em>Clear cache</em> removes them.</p>
+                    <p><strong>No warranty.</strong> This is an educational tool provided as-is. Verify results independently before relying on them.</p>
+                </div>
+            </details>
+
+            <div id="cells-wrapper" style="display: flex; flex-direction: column; gap: 22px;"></div>
+
+            <button id="addCellBtn" class="btn btn-slate" style="align-self: flex-start; display: none; margin-top: 4px;">
+                + Add cell
+            </button>
+        </div>
+
+        <div class="sidebar">
+            <details class="sidebar-section" open>
+                <summary>
+                    <span class="sidebar-title">Memory Inspector</span>
+                </summary>
+                <p class="sidebar-subtitle">Live view of Python global variables.</p>
+                <div class="state-table-wrapper">
+                    <table id="state-table">
+                        <thead>
+                            <tr><th>Name</th><th>Type</th><th>Value</th></tr>
+                        </thead>
+                        <tbody id="state-table-body"></tbody>
+                    </table>
+                    <p id="state-empty">No variables yet &mdash; run a cell to see them here.</p>
+                </div>
+            </details>
+
+            <details class="sidebar-section files-panel" open>
+                <summary>
+                    <span class="sidebar-title">Files</span>
+                    <label class="cache-toggle" id="embedFilesLabel" title="When on, data files are baked into Save Copy / Export so they travel with the notebook. Off keeps saved files smaller and data private." style="margin-right:auto;">
+                        <input type="checkbox" id="embedFilesToggle" />
+                        Store data in notebook
+                    </label>
+                    <span class="files-actions">
+                        <button class="btn btn-slate" id="uploadFilesBtn" disabled>Upload</button>
+                        <button class="btn btn-slate" id="refreshFilesBtn">Refresh</button>
+                        <button class="btn btn-slate" id="downloadZipBtn">Download all (zip file)</button>
+                    </span>
+                </summary>
+                <p class="sidebar-subtitle">The <code>data/</code> folder &mdash; cells read and write here by plain filename, e.g. <code>pd.read_csv("sales.csv")</code>.</p>
+                <input type="file" id="dataFileUpload" class="hidden-file-input" accept=".csv,.xlsx,.json,.parquet,.txt" multiple />
+                <div class="file-list" id="file-list" style="display:none;"></div>
+                <p id="files-empty">No files yet &mdash; upload one, or write one with <code style="font-size:11px;">df.to_csv("out.csv")</code>.</p>
+            </details>
+            <details class="sidebar-section files-panel" id="cacheSection">
+                <summary>
+                    <span class="sidebar-title">Cached packages</span>
+                    <span class="files-actions">
+                        <button class="btn btn-slate" id="refreshCacheListBtn">Refresh</button>
+                    </span>
+                </summary>
+                <p class="sidebar-subtitle">Files stored in this browser's IndexedDB. Use <em>Clear cache</em> in the toolbar to remove them.</p>
+                <div class="file-list" id="cache-list" style="display:none;"></div>
+                <p id="cache-empty">Nothing cached yet.</p>
+            </details>
+        </div>
+    </div>
+
+    <script>
+    // All external scripts load with `defer`: they download in parallel without
+    // blocking first paint, execute in order, and are guaranteed done before
+    // DOMContentLoaded fires — so the whole app boots from that event.
+    window.addEventListener('DOMContentLoaded', function () {
+
+        // Snapshot this file's own source *before* any dynamic DOM is created.
+        // Save Copy re-serializes this snapshot with fresh notebook state, which
+        // is the only reliable way to "save in place" from a file:// page.
+
+        //#region file: js/00-state.js
+        //#endregion
+        //#region file: js/15-menus.js
+        //#endregion
+
+        //#region file: js/10-prefs.js
+        //#endregion
+        //#region file: js/20-cache.js
+        //#endregion
+        //#region file: js/25-autosave.js
+        //#endregion
+        
+        //#region file: js/30-theme.js
+        //#endregion
+        //#region file: js/35-completions.js
+        //#endregion
+        //#region file: js/40-markdown.js
+        //#endregion
+        //#region file: js/45-toc.js
+        //#endregion
+        //#region file: js/99-boot.js
+        //#endregion
+        //#region file: js/50-notebook-state.js
+        //#endregion
+        //#region file: js/60-io.js
+        //#endregion
+        //#region file: js/55-vfs.js
+        //#endregion
+        //#region file: js/70-cells.js
+        //#endregion
+
+        //#region file: js/75-exec.js
+        //#endregion 
+
+        //#region file: js/80-memory-inspector.js
+        //#endregion
+    });
+
+
+    
+    </script>
+
+
+</body>
+</html>
