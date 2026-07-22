@@ -28,7 +28,7 @@
     <script defer src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
-    <script defer src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+    <!--<script defer src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script> -->
     <script defer src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
     <!-- #endregion -->
 
@@ -980,7 +980,7 @@
         async function initPyodide() {
             const statusText = document.getElementById('status-text');
             pyodide = await loadPyodide();
-            statusText.textContent = "Installing pandas, numpy, matplotlib, seaborn, duckdb, plotly. This may take a minute or two...";
+            statusText.textContent = "Installing pandas, numpy, matplotlib, seaborn, duckdb. This may take a minute or two...";
 
             await pyodide.loadPackage("micropip");
             const micropip = pyodide.pyimport("micropip");
@@ -996,7 +996,7 @@
             // "bdata" blobs that the plotly.js 2.x bundle in <head> can't read
             // (figures render as an empty white canvas). 5.24.1 + plotly.js 2.35
             // is a matched pair.
-            await micropip.install(["duckdb", "pandas", "numpy", "matplotlib", "seaborn", "openpyxl", "plotly==5.24.1"]);
+            await micropip.install(["duckdb", "pandas", "numpy", "matplotlib", "seaborn", "openpyxl"]);
 
             // Python State Exporter & result renderer (tables / plots / plotly)
             await pyodide.runPythonAsync(`
