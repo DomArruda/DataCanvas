@@ -17,7 +17,7 @@ It is designed for exploratory analysis, teaching, sharing reproducible notebook
 - Last expression in a cell is automatically displayed
 - DataFrames render as interactive tables
 - Matplotlib / Seaborn / pandas plots render as images
-- Plotly figures stay fully interactive
+- Plotly figures are experimental for now
 
 ### Notebook experience
 - Code cells + Markdown cells (`%%markdown` at the top of a cell)
