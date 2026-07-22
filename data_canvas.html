@@ -6,8 +6,16 @@
 
     <script id="notebook-data" type="application/json">{"cells":[]}</script>
 
-    <!-- Out main scripts, defer used for asynch..........-->
+    <!-- Our main scripts, defer used for asynch..........-->
     <!-- #region file: cdn.html -->
+
+
+    <!-- Modern Typography Stack -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+    <!--Scripts and CSS-->
 
     <script defer src="https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
@@ -72,6 +80,9 @@
             --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
             --shadow-md: 0 1px 3px rgba(0,0,0,0.05);
             --shadow-lg: 0 4px 6px -1px rgba(0,0,0,0.05);
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;  /* NEW - IMPROVED TYPOGRAPH/FONTS */
+            --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            --font-serif: 'Lora', Charter, 'Bitstream Charter', Georgia, serif;
         }
 
         html[data-theme="dark"] {
@@ -108,12 +119,15 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: var(--font-sans);
+            line-height: 1.5; /* Adds a bit of breathing room to the UI */
             background-color: var(--bg);
             margin: 0; padding: 0; color: var(--text);
             transition: background-color .2s ease, color .2s ease;
+            -webkit-font-smoothing: antialiased; /* Makes Inter look crisp on Mac */
         }
 
+        /* ---------- Navbar ---------- */
         /* ---------- Navbar ---------- */
         .navbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; background: var(--surface); padding: 12px 28px; border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm); margin-bottom: 28px; position: sticky; top: 0; z-index: 100; transition: background-color .2s ease, border-color .2s ease; flex-wrap: wrap; }
         .nav-brand { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
@@ -147,7 +161,7 @@
         .cache-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer; user-select: none; white-space: nowrap; }
         .cache-toggle input { accent-color: var(--accent); cursor: pointer; }
         .cache-toggle .exp { color: var(--text-faint); font-weight: 500; }
-        #cacheBadge { font-size: 11px; color: var(--text-faint); font-family: 'JetBrains Mono', 'Courier New', monospace; white-space: nowrap; }
+        #cacheBadge { font-size: 11px; color: var(--text-faint); font-family: var(--font-mono); white-space: nowrap; }
         #clearCacheBtn { padding: 4px 9px; font-size: 11.5px; }
 
         /* ---------- Layout: contents | notebook | inspector ---------- */
@@ -186,7 +200,7 @@
         .howto summary:hover { color: var(--text); }
         .howto-body { padding: 0 18px 16px 42px; color: var(--text-muted); font-size: 13.5px; line-height: 1.65; }
         .howto-body p { margin: 0 0 9px 0; }
-        .howto-body code { background: var(--code-inline-bg); padding: 1px 6px; border-radius: 4px; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 12px; color: var(--text); }
+        .howto-body code { background: var(--code-inline-bg); padding: 1px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px; color: var(--text); }
         .howto-body strong { color: var(--text); }
 
         /* ---------- Cells ---------- */
@@ -194,7 +208,7 @@
         .cell:focus-within { border-color: var(--accent); }
         .cell.md-rendered { background: transparent; border-color: transparent; box-shadow: none; padding: 4px 16px; }
         .cell.md-rendered .cell-actions { display: none; }
-        .CodeMirror { border-radius: 8px; font-family: 'JetBrains Mono', 'Courier New', Courier, monospace; font-size: 14px; height: auto; min-height: 80px; padding: 4px 0; }
+        .CodeMirror { border-radius: 8px; font-family: var(--font-mono); font-size: 14px; height: auto; min-height: 80px; padding: 4px 0; }
 
         /* Hover-revealed insert handles (the cell list is a linked list;
            these are its insert-before / insert-after operations) */
@@ -211,7 +225,7 @@
         .btn-del { background-color: transparent; color: var(--text-faint); padding: 6px 12px; font-size: 13px; box-shadow: none; }
         .btn-del:hover { color: var(--danger-text); background-color: var(--danger-bg); }
 
-        .output { background: var(--console-bg); color: var(--console-text); padding: 16px; border-radius: 8px; margin-top: 12px; white-space: pre-wrap; font-family: 'JetBrains Mono', 'Courier New', Courier, monospace; display: none; font-size: 13px; line-height: 1.5; overflow-x: auto; }
+        .output { background: var(--console-bg); color: var(--console-text); padding: 16px; border-radius: 8px; margin-top: 12px; white-space: pre-wrap; font-family: var(--font-mono); display: none; font-size: 13px; line-height: 1.5; overflow-x: auto; }
         .output.error { color: var(--console-error); }
         .plot-container { background: var(--surface); padding: 10px; border-radius: 8px; margin-top: 12px; display: none; text-align: center; border: 1px solid var(--border); }
         .plot-container img { max-width: 100%; height: auto; border-radius: 4px; }
@@ -220,14 +234,14 @@
 
         /* ---------- Rich tables (pandas /duckdb) ---------- */
         .table-output { display: none; margin-top: 12px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; }
-        .table-output table { border-collapse: collapse; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 12.5px; color: var(--text); }
+        .table-output table { border-collapse: collapse; font-family: var(--font-mono); font-size: 12.5px; color: var(--text); }
         .table-output th, .table-output td { border: 1px solid var(--border); padding: 5px 11px; }
         .table-output thead th { background: var(--slate-btn-bg); color: var(--text-muted); text-align: left; font-weight: 700; }
         .table-output tbody th { color: var(--accent); font-weight: 600; text-align: left; }
         .table-output td { text-align: right; }
 
         /* ---------- Rendered markdown: the "book page" ---------- */
-        .markdown-output { display: none; padding: 2px 6px; font-family: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, Georgia, serif; font-size: 16.5px; line-height: 1.7; color: var(--text); cursor: text; max-width: 74ch; }
+        .markdown-output { display: none; padding: 2px 6px; font-family: var(--font-serif); font-size: 16.5px; line-height: 1.7; color: var(--text); cursor: text; max-width: 74ch; }
         .markdown-output > :first-child { margin-top: 2px; }
         .markdown-output h1, .markdown-output h2, .markdown-output h3, .markdown-output h4 { font-family: inherit; color: var(--text); margin: 1em 0 0.45em 0; line-height: 1.25; letter-spacing: -0.01em; }
         .markdown-output h1 { font-size: 1.85em; border-bottom: 1px solid var(--border); padding-bottom: .3em; }
@@ -235,7 +249,7 @@
         .markdown-output h3 { font-size: 1.18em; }
         .markdown-output p { margin: 0.55em 0; }
         .markdown-output a { color: var(--accent); }
-        .markdown-output code { background: var(--code-inline-bg); padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 0.82em; }
+        .markdown-output code { background: var(--code-inline-bg); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.82em; }
         .markdown-output pre { background: var(--console-bg); color: var(--console-text); padding: 12px 14px; border-radius: 8px; overflow-x: auto; }
         .markdown-output pre code { background: none; padding: 0; color: inherit; }
         .markdown-output blockquote { border-left: 3px solid var(--accent); margin: 0.7em 0; padding: 2px 16px; color: var(--text-muted); font-style: italic; }
@@ -259,7 +273,7 @@
         .sidebar-section summary:hover .sidebar-title { color: var(--accent); }
 
         .state-table-wrapper { max-height: 42vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
-        #state-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: 'JetBrains Mono', 'Courier New', monospace; display: none; }
+        #state-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--font-mono); display: none; }
         #state-table thead th { position: sticky; top: 0; text-align: left; padding: 8px 10px; background: var(--slate-btn-bg); color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: 10px; border-bottom: 1px solid var(--border); }
         #state-table tbody td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; word-break: break-word; }
         #state-table tbody tr:last-child td { border-bottom: none; }
@@ -278,7 +292,7 @@
         .file-row:last-child { border-bottom: none; }
         .file-row:hover { background: var(--slate-btn-bg); }
         .file-info { min-width: 0; }
-        .file-name { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 12px; color: var(--text); word-break: break-all; }
+        .file-name { font-family: var(--font-mono); font-size: 12px; color: var(--text); word-break: break-all; }
         .file-meta { font-size: 11px; color: var(--text-faint); margin-top: 1px; }
         .file-dl { padding: 4px 9px; font-size: 13px; flex: 0 0 auto; }
         #files-empty { color: var(--text-muted); font-size: 12.5px; padding: 12px 4px; }
@@ -289,8 +303,11 @@
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* Autocomplete popup theming */
-        .CodeMirror-hints { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 13px; border: 1px solid var(--border); box-shadow: var(--shadow-lg); }
+        .CodeMirror-hints { font-family: var(--font-mono); font-size: 13px; border: 1px solid var(--border); box-shadow: var(--shadow-lg); }
+        
+        
         /* #endregion */
+
 
     </style>
 </head>
