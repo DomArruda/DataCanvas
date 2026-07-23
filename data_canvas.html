@@ -370,6 +370,8 @@
                 Run All
             </button>
             <button class="btn btn-red" onclick="location.reload()">Restart</button>
+            <button class="btn btn-red" onclick="newCanvas()">Clear All</button>
+            
         </div>
     </div>
 
@@ -1014,6 +1016,16 @@
                 matplotlib.use("Agg")
                 import matplotlib.pyplot as plt
 
+                def _browser_input(prompt=""):      # for IO support.
+                    import js
+                    result = js.prompt(str(prompt))
+                    if result is None:
+                        raise EOFError("input() cancelled")
+                    return result
+
+                import builtins
+                builtins.input = _browser_input
+
                 # 1. Alias fig.plot() -> fig.gca().plot() to prevent user syntax crashes
                 def _fig_plot_alias(self, *args, **kwargs):
                     return self.gca().plot(*args, **kwargs)
@@ -1028,7 +1040,7 @@
                     'base64', 'matplotlib', 'plt', 'pd', 'pandas', 'np', 'numpy', 'sns', 'seaborn',
                     'export_state_records', 'render_plot', 'render_result', 'get_completable_names',
                     '_IGNORE_GLOBALS', '_original_stdout', 'start_stdout_capture', 'end_stdout_capture',
-                    'set_plot_theme'
+                    'set_plot_theme', builtins, _browser_input,
                 }
 
                 def start_stdout_capture():
@@ -1374,6 +1386,34 @@ df.plot(title="Pandas Built-in Plotting", figsize=(7, 4))`;
                 files: collectDataFiles()
             }, null, 2);
             downloadBlob(content, name, "application/json");
+        }
+
+        function newCanvas() {
+            if (!confirm("Start a blank canvas? This clears all cells, outputs, and the data/ folder. Unsaved work will be lost.")) return;
+
+            // Clear cells + editors + archived outputs
+            document.getElementById('cells-wrapper').innerHTML = '';
+            for (const key in editors) delete editors[key];
+            for (const key in lastOutputs) delete lastOutputs[key];
+
+            // Wipe the virtual filesystem's data dir (best-effort; ok if pyodide not ready)
+            if (pyodide && pyodide.FS) {
+                try {
+                    pyodide.FS.readdir(DATA_DIR).forEach(name => {
+                        if (name === '.' || name === '..') return;
+                        try { pyodide.FS.unlink(DATA_DIR + '/' + name); } catch (e) {}
+                    });
+                } catch (e) {}
+            }
+
+            // Drop autosave so a reload doesn't offer the old work back
+            try { localStorage.removeItem(AUTOSAVE_KEY); } catch (e) {}
+            document.getElementById('restoreBar').style.display = 'none';
+
+            rebuildTOC();
+            if (pyodide) updateStateInspector();
+            refreshFilePanel();
+            addCell(); // leave one empty cell, matches first-boot feel
         }
 
         // Saving HTML - let's end users just click with the state of the previously saved....
@@ -2313,13 +2353,34 @@ df.plot(title="Pandas Built-in Plotting", figsize=(7, 4))`;
             try {
                 const ids = Array.from(document.querySelectorAll('#cells-wrapper .cell')).map(c => c.id);
                 for (const id of ids) {
-                    if (editors[id]) await runCell(id); // use the run cell Button; running is linear.....
+                    if (!editors[id]) continue;
+                    await runCell(id);
+                    const out = lastOutputs[id];
+                    if (out && out.kind === 'text' && out.error) {
+                        // Stop the chain; mark remaining cells as skipped
+                        const idx = ids.indexOf(id);
+                        for (let i = idx + 1; i < ids.length; i++) {
+                            markCellSkipped(ids[i]);
+                        }
+                        break;
+                    }
                 }
             } finally {
-                runAllBtn.disabled = false; // make sure that the button is no longer disabled.
-                runAllBtn.innerHTML = originalLabel; // reset lable.
+                runAllBtn.disabled = false;
+                runAllBtn.innerHTML = originalLabel;
             }
-        }
+    }
+
+
+    function markCellSkipped(cellId) {
+        const cell = document.getElementById(cellId);
+        if (!cell) return;
+        const output = cell.querySelector('.output');
+        output.innerText = 'Skipped \u2014 a previous cell failed.';
+        output.classList.remove('error');
+        output.style.display = 'block';
+    }
+        
 
         //#endregion 
 
@@ -2380,7 +2441,7 @@ df.plot(title="Pandas Built-in Plotting", figsize=(7, 4))`;
         // Inline onclick attributes in the HTML need these on window,
         // since everything above lives inside this DOMContentLoaded closure.
         Object.assign(window, {
-            toggleTheme, exportNotebookJson, exportPython, saveHtmlCopy,
+            toggleTheme, newCanvas, exportNotebookJson, exportPython, saveHtmlCopy,
             runAllCells, runCell, deleteCell, insertCellAbove, insertCellBelow
         });
 
